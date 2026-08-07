@@ -1,0 +1,47 @@
+==========================================================
+
+PC Shop
+Semana 1-3
+Fecha: 02/08/2026
+
+Objetivos alcanzados
+--------------------
+
+✓ Creada la unidad uProducto.
+✓ Definida la clase TProducto.
+✓ Añadidas las propiedades básicas:
+    - Código
+    - Descripción
+    - Categoría
+    - Precio
+    - Stock
+
+✓ Implementado el constructor Create.
+✓ Creado el primer objeto FProducto.
+✓ El botón Guardar copia los datos del formulario al objeto.
+✓ El StringGrid muestra los datos almacenados en TProducto.
+
+Conceptos aprendidos
+--------------------
+
+- Clases
+- Objetos
+- Constructor
+- Propiedades
+- Modelo de datos
+- Separación entre interfaz y lógica
+
+Conclusión
+----------
+
+A partir de esta sesión el formulario deja de trabajar
+directamente con los controles y comienza a utilizar
+objetos del modelo.
+
+Próxima sesión
+--------------
+
+Crear una lista TObjectList<TProducto> para gestionar
+múltiples productos.
+
+==========================================================
