@@ -1,5 +1,5 @@
 PB
-# PC Shop
+# PC Shop -- por INFORMATOLI.org
 
 Aplicación de escritorio para Windows desarrollada con **Delphi 12.1 Community Edition** y tecnología **VCL**.
 
