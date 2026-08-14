@@ -16,7 +16,7 @@ uses
   Vcl.StdCtrls,
   Vcl.Grids,
   Vcl.ExtCtrls,
-  uproducto;
+  uproducto,Datos;
 
 type
   TfrmProductos = class(TForm)
@@ -43,14 +43,14 @@ FIndiceProductoSeleccionado: Integer;
     lblTitulo: TLabel;
 
     lblCodigo: TLabel;
-    lblDescripcion: TLabel;
-    lblCategoria: TLabel;
+    lblNombre: TLabel;
+
     lblPrecio: TLabel;
     lblStock: TLabel;
 
     edtCodigo: TEdit;
-    edtDescripcion: TEdit;
-    edtCategoria: TEdit;
+    edtNombre: TEdit;
+
     edtPrecio: TEdit;
     edtStock: TEdit;
 
@@ -134,6 +134,14 @@ fproducto:=TProducto.Create;
 
   CrearInterfaz;
   PrepararTabla;
+
+  // Carga desde SQLite los productos persistidos
+  // y crea un TProducto por cada registro recuperado.
+  dmDatos.CargarProductos(FProductos);
+
+  // Muestra en el TStringGrid los objetos cargados
+  // desde la base de datos.
+  ActualizarTablaDesdeColeccion;
 end;
 
 {
@@ -185,8 +193,8 @@ lblModo.Caption := 'Modo: Edición';
   // En este momento únicamente se muestran los datos;
   // todavía no se modifica el objeto.
   edtCodigo.Text := Producto.Codigo;
-  edtDescripcion.Text := Producto.Descripcion;
-  edtCategoria.Text := Producto.Categoria;
+  edtNombre.Text := Producto.Nombre;
+
   edtPrecio.Text := FloatToStr(Producto.Precio);
   edtStock.Text := IntToStr(Producto.Stock);
 end;
@@ -221,15 +229,18 @@ begin
   begin
     Producto := FProductos[I];
 
-    // El producto con índice 0 se muestra en la fila 1,
-    // por lo que se suma una unidad al índice.
-    grdProductos.Cells[0, I + 1] := Producto.Codigo;
-    grdProductos.Cells[1, I + 1] := Producto.Descripcion;
-    grdProductos.Cells[2, I + 1] := Producto.Categoria;
-    grdProductos.Cells[3, I + 1] :=
-      FormatFloat('0.00', Producto.Precio);
-    grdProductos.Cells[4, I + 1] :=
-      IntToStr(Producto.Stock);
+// 0 = Código
+// 1 = Nombre
+// 2 = Precio
+// 3 = Stock
+grdProductos.Cells[0, I + 1] := Producto.Codigo;
+grdProductos.Cells[1, I + 1] := Producto.Nombre;
+
+grdProductos.Cells[2, I + 1] :=
+  FormatFloat('0.00', Producto.Precio);
+
+grdProductos.Cells[3, I + 1] :=
+  IntToStr(Producto.Stock);
   end;
 end;
 
@@ -276,31 +287,24 @@ begin
   edtCodigo.Width := 180;
   edtCodigo.MaxLength := 20;
 
-  lblDescripcion := TLabel.Create(Self);
-  lblDescripcion.Parent := Self;
-  lblDescripcion.Left := 24;
-  lblDescripcion.Top := 110;
-  lblDescripcion.Caption := 'Descripción:';
+// Etiqueta del nombre del producto.
+lblNombre := TLabel.Create(Self);
+lblNombre.Parent := Self;
+lblNombre.Left := 24;
+lblNombre.Top := 110;
+lblNombre.Caption := 'Nombre:';
 
-  edtDescripcion := TEdit.Create(Self);
-  edtDescripcion.Parent := Self;
-  edtDescripcion.Left := 125;
-  edtDescripcion.Top := 105;
-  edtDescripcion.Width := 400;
-  edtDescripcion.MaxLength := 100;
+// Campo donde el usuario introduce el nombre.
+edtNombre := TEdit.Create(Self);
+edtNombre.Parent := Self;
+edtNombre.Left := 125;
+edtNombre.Top := 105;
+edtNombre.Width := 400;
+edtNombre.MaxLength := 100;
 
-  lblCategoria := TLabel.Create(Self);
-  lblCategoria.Parent := Self;
-  lblCategoria.Left := 24;
-  lblCategoria.Top := 145;
-  lblCategoria.Caption := 'Categoría:';
 
-  edtCategoria := TEdit.Create(Self);
-  edtCategoria.Parent := Self;
-  edtCategoria.Left := 125;
-  edtCategoria.Top := 140;
-  edtCategoria.Width := 250;
-  edtCategoria.MaxLength := 50;
+
+
 
   lblPrecio := TLabel.Create(Self);
   lblPrecio.Parent := Self;
@@ -385,7 +389,9 @@ end;
 
 procedure TfrmProductos.PrepararTabla;
 begin
-  grdProductos.ColCount := 5;
+// El grid muestra exactamente los mismos cuatro campos
+// que utiliza actualmente TProducto y la tabla PRODUCTOS.
+grdProductos.ColCount := 4;
   grdProductos.RowCount := 2;
   grdProductos.FixedRows := 1;
   grdProductos.FixedCols := 0;
@@ -393,17 +399,16 @@ begin
   grdProductos.Options :=
     grdProductos.Options + [goRowSelect] - [goEditing];
 
-  grdProductos.Cells[0, 0] := 'Código';
-  grdProductos.Cells[1, 0] := 'Descripción';
-  grdProductos.Cells[2, 0] := 'Categoría';
-  grdProductos.Cells[3, 0] := 'Precio';
-  grdProductos.Cells[4, 0] := 'Stock';
+    grdProductos.Cells[0, 0] := 'Código';
+grdProductos.Cells[1, 0] := 'Nombre';
+grdProductos.Cells[2, 0] := 'Precio';
+grdProductos.Cells[3, 0] := 'Stock';
 
-  grdProductos.ColWidths[0] := 120;
-  grdProductos.ColWidths[1] := 260;
-  grdProductos.ColWidths[2] := 160;
-  grdProductos.ColWidths[3] := 100;
-  grdProductos.ColWidths[4] := 80;
+
+grdProductos.ColWidths[0] := 120;
+grdProductos.ColWidths[1] := 300;
+grdProductos.ColWidths[2] := 100;
+grdProductos.ColWidths[3] := 80;
 
   grdProductos.Rows[1].Clear;
 end;
@@ -411,8 +416,8 @@ end;
 procedure TfrmProductos.LimpiarCampos;
 begin
   edtCodigo.Clear;
-  edtDescripcion.Clear;
-  edtCategoria.Clear;
+  edtNombre.Clear;
+
   edtPrecio.Clear;
   edtStock.Clear;
   edtCodigo.SetFocus;
@@ -464,22 +469,13 @@ begin
     Exit;
   end;
 
-  if Trim(edtDescripcion.Text) = '' then
+  if Trim(edtNombre.Text) = '' then
   begin
-    ShowMessage('Introduce la descripción del producto.');
-    edtDescripcion.SetFocus;
+    ShowMessage('Introduce el nombre del producto.');
+    edtNombre.SetFocus;
     Exit;
   end;
 
-  // La categoría también es obligatoria.
-// Trim elimina posibles espacios escritos por el usuario
-// para evitar aceptar un campo aparentemente vacío.
-if Trim(edtCategoria.Text) = '' then
-begin
-  ShowMessage('Introduce la categoría del producto.');
-  edtCategoria.SetFocus;
-  Exit;
-end;
 
 // Primero se comprueba que el PRECIO se haya introducido.
 // Después se comprobará que realmente sea un número válido.
@@ -524,7 +520,7 @@ begin
 end;
 
 
-  if not TryStrToInt(edtStock.Text, Stock) then
+  if not TryStrToInt(Trim(edtStock.Text), Stock) then
   begin
     ShowMessage('El stock introducido no es válido.');
     edtStock.SetFocus;
@@ -582,10 +578,13 @@ end;
     // Se actualizan sus propiedades con los valores
     // introducidos en el formulario.
     Producto.Codigo := Trim(edtCodigo.Text);
-    Producto.Descripcion := Trim(edtDescripcion.Text);
-    Producto.Categoria := Trim(edtCategoria.Text);
+    Producto.Nombre:= Trim(edtNombre.Text);
+
     Producto.Precio := Precio;
     Producto.Stock := Stock;
+
+    // guarda tb en sqlite
+    dmDatos.ActualizarProducto(Producto);
 
     // Se reconstruye la tabla para mostrar los cambios.
     ActualizarTablaDesdeColeccion;
@@ -601,10 +600,21 @@ end;
     // No existe ningún producto seleccionado.
     // Se rellenan las propiedades del objeto temporal.
     FProducto.Codigo := Trim(edtCodigo.Text);
-    FProducto.Descripcion := Trim(edtDescripcion.Text);
-    FProducto.Categoria := Trim(edtCategoria.Text);
+    FProducto.Nombre := Trim(edtNombre.Text);
+
     FProducto.Precio := Precio;
     FProducto.Stock := Stock;
+
+    // ----------------------------------------------------------
+// Persistencia en SQLite.
+//
+// El formulario no conoce el SQL.
+// Entrega el objeto TProducto al Data Module,
+// que es responsable del acceso a la base de datos.
+// ----------------------------------------------------------
+dmDatos.InsertarProducto(FProducto);
+
+
 
     // La colección pasa a ser propietaria del objeto.
     FProductos.Add(FProducto);
@@ -687,7 +697,7 @@ var
 begin
   TextoBuscar := InputBox(
     'Buscar producto',
-    'Introduce un código o una descripción:',
+    'Introduce un código o un nombre:',
     ''
   );
 

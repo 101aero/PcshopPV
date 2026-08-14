@@ -1,0 +1,97 @@
+object dmDatos: TdmDatos
+  OnCreate = DataModuleCreate
+  Height = 935
+  Width = 1246
+  PixelsPerInch = 134
+  object FDConnection1: TFDConnection
+    Params.Strings = (
+      
+        'Database=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\P' +
+        'rojects\c\pcshop.db'
+      'LockingMode=Normal'
+      'DriverID=SQLite')
+    Left = 80
+    Top = 48
+  end
+  object FDPhysPgDriverLink1: TFDPhysPgDriverLink
+    Left = 232
+    Top = 48
+  end
+  object qryProductos: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'CREATE TABLE IF NOT EXISTS PRODUCTOS ('
+      '  Codigo TEXT PRIMARY KEY NOT NULL,'
+      '  Nombre TEXT NOT NULL,'
+      '  Precio REAL NOT NULL CHECK (Precio >= 0),'
+      '  Stock INTEGER NOT NULL CHECK (Stock >= 0)'
+      ');')
+    Left = 80
+    Top = 136
+  end
+  object qryInsertarProducto: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'INSERT INTO PRODUCTOS'
+      '  (Codigo, Nombre, Precio, Stock)'
+      'VALUES'
+      '  (:Codigo, :Nombre, :Precio, :Stock);')
+    Left = 264
+    Top = 168
+    ParamData = <
+      item
+        Name = 'CODIGO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'NOMBRE'
+        ParamType = ptInput
+      end
+      item
+        Name = 'PRECIO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'STOCK'
+        ParamType = ptInput
+      end>
+  end
+  object qryListarProductos: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT Codigo, Nombre, Precio, Stock'
+      'FROM PRODUCTOS'
+      'ORDER BY Codigo;')
+    Left = 432
+    Top = 168
+  end
+  object qryActualizarProducto: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      '                       UPDATE PRODUCTOS'
+      'SET'
+      '  Nombre = :Nombre,'
+      '  Precio = :Precio,'
+      '  Stock = :Stock'
+      'WHERE Codigo = :Codigo;')
+    Left = 560
+    Top = 168
+    ParamData = <
+      item
+        Name = 'NOMBRE'
+        ParamType = ptInput
+      end
+      item
+        Name = 'PRECIO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'STOCK'
+        ParamType = ptInput
+      end
+      item
+        Name = 'CODIGO'
+        ParamType = ptInput
+      end>
+  end
+end

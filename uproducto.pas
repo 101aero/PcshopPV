@@ -23,17 +23,22 @@ type
   TProducto = class
   private
     FCodigo: string;
-    FDescripcion: string;
-    FCategoria: string;
+
+    // Campo definitivo para el nombre del producto.
+    FNombre: string;
+
+
     FPrecio: Double;
     FStock: Integer;
 
   public
-  constructor Create;
+    constructor Create;
 
     property Codigo: string read FCodigo write FCodigo;
-    property Descripcion: string read FDescripcion write FDescripcion;
-    property Categoria: string read FCategoria write FCategoria;
+
+    // Propiedad definitiva, alineada con PRODUCTOS.Nombre en SQLite.
+    property Nombre: string read FNombre write FNombre;
+
     property Precio: Double read FPrecio write FPrecio;
     property Stock: Integer read FStock write FStock;
   end;
@@ -57,8 +62,9 @@ begin
   inherited Create;
 
   FCodigo := '';
-  FDescripcion := '';
-  FCategoria := '';
+// Inicializamos el campo definitivo Nombre.
+FNombre := '';
+
   FPrecio := 0;
   FStock := 0;
 end;
