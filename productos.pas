@@ -640,6 +640,7 @@ end;
 procedure TfrmProductos.btnEliminarClick(Sender: TObject);
 var
   Fila: Integer;
+  Producto: TProducto;
 
 begin
   Fila := grdProductos.Row;
@@ -658,17 +659,27 @@ begin
   ) <> mrYes then
     Exit;
 
-    //
-        // ----------------------------------------------------------
-  // La fila 1 del StringGrid corresponde al elemento 0
-  // de la colección. Por eso se resta una unidad.
-  //
-  // Delete elimina el producto de la colección y, como
-  // FProductos es propietaria de sus objetos, también libera
-  // automáticamente la memoria ocupada por TProducto.
-  // ----------------------------------------------------------
-  FProductos.Delete(Fila - 1);
 
+    // Obtenemos el producto seleccionado.
+// La fila 1 del grid corresponde al índice 0 de FProductos.
+Producto := FProductos[Fila - 1];
+
+// Primero intentamos eliminar el registro persistido en SQLite.
+// Si SQLite no elimina ninguna fila, no modificamos la colección
+// en memoria para evitar que ambos estados queden desincronizados.
+if not dmDatos.EliminarProducto(Producto.Codigo) then
+begin
+  ShowMessage(
+    'No se ha podido eliminar el producto de la base de datos.'
+  );
+  Exit;
+end;
+
+// Solo después de eliminar correctamente en SQLite,
+// eliminamos el objeto de la colección en memoria.
+FProductos.Delete(Fila - 1);
+
+// Reconstruimos el TStringGrid desde FProductos.
     //
    // Se reconstruye la tabla utilizando la colección,
 // que actúa como fuente principal de los datos.

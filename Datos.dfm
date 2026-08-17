@@ -6,8 +6,8 @@ object dmDatos: TdmDatos
   object FDConnection1: TFDConnection
     Params.Strings = (
       
-        'Database=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\P' +
-        'rojects\c\pcshop.db'
+        'Database=C:\Users\j\Documents\Embarcadero\Studio\Projects\c\pcsh' +
+        'op.db'
       'LockingMode=Normal'
       'DriverID=SQLite')
     Left = 80
@@ -89,6 +89,18 @@ object dmDatos: TdmDatos
         Name = 'STOCK'
         ParamType = ptInput
       end
+      item
+        Name = 'CODIGO'
+        ParamType = ptInput
+      end>
+  end
+  object qryEliminarProducto: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'DELETE FROM PRODUCTOS WHERE Codigo = :Codigo')
+    Left = 368
+    Top = 336
+    ParamData = <
       item
         Name = 'CODIGO'
         ParamType = ptInput

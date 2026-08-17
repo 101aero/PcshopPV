@@ -20,10 +20,16 @@ type
     qryInsertarProducto: TFDQuery;
     qryListarProductos: TFDQuery;
     qryActualizarProducto: TFDQuery;
+    qryEliminarProducto: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
 public
+
+// Elimina de SQLite el producto identificado por su código.
+// Devuelve True si realmente se ha eliminado una fila.
+function EliminarProducto(const ACodigo: string): Boolean;
+
 // Actualiza en SQLite los datos de un producto existente.
 procedure ActualizarProducto(const AProducto: TProducto);
   // Lee los productos almacenados en SQLite y
@@ -75,6 +81,22 @@ qryProductos.Open;
 
 if not qryProductos.IsEmpty then
   ShowMessage('Conexión SQLite correcta. Tabla PRODUCTOS creada.');
+end;
+
+
+
+function TdmDatos.EliminarProducto(const ACodigo: string): Boolean;
+begin
+  // Asignamos el código al parámetro :Codigo del DELETE.
+  // No concatenamos el valor dentro del SQL.
+  qryEliminarProducto.ParamByName('Codigo').AsString := ACodigo;
+
+  // ExecSQL ejecuta el DELETE.
+  qryEliminarProducto.ExecSQL;
+
+  // RowsAffected indica cuántas filas ha modificado
+  // la última operación SQL.
+  Result := qryEliminarProducto.RowsAffected > 0;
 end;
 
 procedure TdmDatos.ActualizarProducto(const AProducto: TProducto);
