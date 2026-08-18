@@ -13,10 +13,6 @@ object dmDatos: TdmDatos
     Left = 80
     Top = 48
   end
-  object FDPhysPgDriverLink1: TFDPhysPgDriverLink
-    Left = 232
-    Top = 48
-  end
   object qryProductos: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -105,5 +101,9 @@ object dmDatos: TdmDatos
         Name = 'CODIGO'
         ParamType = ptInput
       end>
+  end
+  object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
+    Left = 288
+    Top = 88
   end
 end

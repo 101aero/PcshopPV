@@ -15,12 +15,12 @@ uses
 type
   TdmDatos = class(TDataModule)
     FDConnection1: TFDConnection;
-    FDPhysPgDriverLink1: TFDPhysPgDriverLink;
     qryProductos: TFDQuery;
     qryInsertarProducto: TFDQuery;
     qryListarProductos: TFDQuery;
     qryActualizarProducto: TFDQuery;
     qryEliminarProducto: TFDQuery;
+    FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -31,7 +31,7 @@ public
 function EliminarProducto(const ACodigo: string): Boolean;
 
 // Actualiza en SQLite los datos de un producto existente.
-procedure ActualizarProducto(const AProducto: TProducto);
+function ActualizarProducto(const AProducto: TProducto): Boolean;
   // Lee los productos almacenados en SQLite y
   // los convierte nuevamente en objetos TProducto.
   //
@@ -99,7 +99,9 @@ begin
   Result := qryEliminarProducto.RowsAffected > 0;
 end;
 
-procedure TdmDatos.ActualizarProducto(const AProducto: TProducto);
+
+
+function TdmDatos.ActualizarProducto(const AProducto: TProducto): Boolean;
 begin
   // Asignamos los nuevos valores a los parámetros SQL.
   qryActualizarProducto.ParamByName('Nombre').AsString :=
@@ -117,8 +119,8 @@ begin
 
   // UPDATE modifica datos y no devuelve filas.
   qryActualizarProducto.ExecSQL;
-//
-  if qryActualizarProducto.RowsAffected=0 then showmessage('sqlite no') else showmessage('sql si');
+// indica cuantas filas ha afectado
+  Result:= qryActualizarProducto.RowsAffected>0;
 
 end;
 

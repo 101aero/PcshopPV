@@ -188,6 +188,9 @@ begin
   // Al seleccionar un producto existente, el formulario
 // pasa del modo Alta al modo Edición.
 lblModo.Caption := 'Modo: Edición';
+// codigoidentifica de forma unica
+edtCodigo.ReadOnly:=true;
+
 
   // Se copian sus propiedades en los campos del formulario.
   // En este momento únicamente se muestran los datos;
@@ -434,6 +437,8 @@ begin
 
     // Se informa al usuario del estado actual del formulario.
   lblModo.Caption := 'Modo: Alta';
+  // aqui si se puede modificar el codigo
+  edtCodigo.ReadOnly:=false;
 
   LimpiarCampos;
 end;
@@ -577,23 +582,33 @@ end;
 
     // Se actualizan sus propiedades con los valores
     // introducidos en el formulario.
-    Producto.Codigo := Trim(edtCodigo.Text);
     Producto.Nombre:= Trim(edtNombre.Text);
 
     Producto.Precio := Precio;
     Producto.Stock := Stock;
 
-    // guarda tb en sqlite
-    dmDatos.ActualizarProducto(Producto);
+
+    if dmDatos.ActualizarProducto(Producto)
+    then begin
 
     // Se reconstruye la tabla para mostrar los cambios.
     ActualizarTablaDesdeColeccion;
 
     // Se abandona el modo de edición.
     FIndiceProductoSeleccionado := -1;
+    edtCodigo.ReadOnly:=false;
+    lblModo.Caption:='Modo alta';
 
     LimpiarCampos;
     ShowMessage('Producto modificado correctamente.');
+          end else begin
+
+          dmDatos.CargarProductos(FProductos);
+          ActualizarTablaDesdeColeccion;
+          Showmessage('no se ha podido actualizar el producto en sqlite');
+                   end;
+
+    //**
   end
   else
   begin       // AÑADIMOS NUEVO
