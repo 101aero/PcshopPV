@@ -587,27 +587,29 @@ end;
     Producto.Precio := Precio;
     Producto.Stock := Stock;
 
+// Intentamos persistir primero los cambios en SQLite.
+// Si UPDATE no afecta ninguna fila, recuperamos de nuevo
+// los datos persistidos para evitar inconsistencias.
+if not dmDatos.ActualizarProducto(Producto) then
+begin
+  dmDatos.CargarProductos(FProductos);
+  ActualizarTablaDesdeColeccion;
 
-    if dmDatos.ActualizarProducto(Producto)
-    then begin
+  ShowMessage('No se ha podido actualizar el producto en SQLite.');
+  Exit;
+end;
 
-    // Se reconstruye la tabla para mostrar los cambios.
-    ActualizarTablaDesdeColeccion;
+// A partir de aquí sabemos que SQLite ha confirmado el UPDATE.
+ActualizarTablaDesdeColeccion;
 
-    // Se abandona el modo de edición.
-    FIndiceProductoSeleccionado := -1;
-    edtCodigo.ReadOnly:=false;
-    lblModo.Caption:='Modo alta';
+// Se abandona el modo de edición.
+FIndiceProductoSeleccionado := -1;
+edtCodigo.ReadOnly := False;
+lblModo.Caption := 'Modo: Alta';
 
-    LimpiarCampos;
-    ShowMessage('Producto modificado correctamente.');
-          end else begin
-
-          dmDatos.CargarProductos(FProductos);
-          ActualizarTablaDesdeColeccion;
-          Showmessage('no se ha podido actualizar el producto en sqlite');
-                   end;
-
+LimpiarCampos;
+ShowMessage('Producto modificado correctamente.');
+    
     //**
   end
   else
@@ -626,13 +628,21 @@ end;
 // El formulario no conoce el SQL.
 // Entrega el objeto TProducto al Data Module,
 // que es responsable del acceso a la base de datos.
-// ----------------------------------------------------------
-dmDatos.InsertarProducto(FProducto);
+// ----------------------------------------------------------;
 
+// Intentamos persistir primero el producto en SQLite.
+// Si no se inserta ninguna fila, no modificamos la colección
+// ni mostramos en pantalla algo que realmente no se ha guardado.
 
+if not dmDatos.InsertarProducto(FProducto) then
+begin
+  ShowMessage('No se ha podido guardar el producto en SQLite.');
+  Exit;
+end;
 
-    // La colección pasa a ser propietaria del objeto.
-    FProductos.Add(FProducto);
+// Solo si SQLite confirma la inserción,
+// añadimos el objeto a la colección en memoria.
+FProductos.Add(FProducto);
 
     // Se muestra el contenido actualizado de la colección.
     ActualizarTablaDesdeColeccion;

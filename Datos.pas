@@ -3,7 +3,7 @@ unit Datos;
 interface
 
 uses
-  Vcl.Dialogs,uProducto, System.Generics.Collections,
+ uProducto, System.Generics.Collections,
   System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option,
   FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
   FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait,
@@ -37,8 +37,11 @@ function ActualizarProducto(const AProducto: TProducto): Boolean;
   //
   // ALista es la colección proporcionada por el formulario.
   procedure CargarProductos(ALista: TObjectList<TProducto>);
-  // Guarda un producto en SQLite utilizando una consulta parametrizada.
-  procedure InsertarProducto(const AProducto: TProducto);
+
+// Inserta un producto en SQLite.
+// Devuelve True si realmente se ha insertado una fila.
+function InsertarProducto(const AProducto: TProducto): Boolean;
+ 
   end;
 
 var
@@ -69,18 +72,7 @@ begin
 // aparece realmente en el esquema interno de SQLite.
 // ----------------------------------------------------------
 
-qryProductos.Close;
 
-qryProductos.SQL.Text :=
-  'SELECT name FROM sqlite_schema ' +
-  'WHERE type = ''table'' AND name = ''PRODUCTOS'';';
-
-// SELECT devuelve registros, por lo que se utiliza Open
-// en lugar de ExecSQL.
-qryProductos.Open;
-
-if not qryProductos.IsEmpty then
-  ShowMessage('Conexión SQLite correcta. Tabla PRODUCTOS creada.');
 end;
 
 
@@ -129,64 +121,57 @@ procedure TdmDatos.CargarProductos(ALista: TObjectList<TProducto>);
 var
   Producto: TProducto;
 begin
-  // Eliminamos cualquier contenido anterior para evitar
-  // cargar dos veces los mismos productos en memoria.
+  // Evita duplicar los productos si se vuelve a realizar la carga.
   ALista.Clear;
 
-  // Cerramos la consulta por seguridad antes de abrirla de nuevo.
   qryListarProductos.Close;
-
-  // Open ejecuta el SELECT configurado en qryListarProductos
-  // y deja disponibles los registros devueltos.
   qryListarProductos.Open;
 
-  // Eof significa "End Of File".
-  // Mientras no lleguemos al final, procesamos cada registro.
-  while not qryListarProductos.Eof do
-  begin
-    Producto := TProducto.Create;
+  try
+    // Recorremos todos los registros devueltos por SELECT.
+    while not qryListarProductos.Eof do
+    begin
+      Producto := TProducto.Create;
 
-    try
-      // Convertimos las columnas de SQLite
-      // en propiedades de un objeto TProducto.
-      Producto.Codigo :=
-        qryListarProductos.FieldByName('Codigo').AsString;
+      try
+        Producto.Codigo :=
+          qryListarProductos.FieldByName('Codigo').AsString;
 
-      Producto.Nombre :=
-        qryListarProductos.FieldByName('Nombre').AsString;
+        Producto.Nombre :=
+          qryListarProductos.FieldByName('Nombre').AsString;
 
-      Producto.Precio :=
-        qryListarProductos.FieldByName('Precio').AsFloat;
+        Producto.Precio :=
+          qryListarProductos.FieldByName('Precio').AsFloat;
 
-      Producto.Stock :=
-        qryListarProductos.FieldByName('Stock').AsInteger;
+        Producto.Stock :=
+          qryListarProductos.FieldByName('Stock').AsInteger;
 
-      // La colección pasa a ser propietaria del objeto.
-      ALista.Add(Producto);
+        // FProductos pasa a ser propietario del objeto.
+        ALista.Add(Producto);
+        Producto := nil;
 
-      // Evitamos que el bloque finally libere un objeto
-      // que ya pertenece a la colección.
-      Producto := nil;
+      finally
+        // Solo libera Producto si no llegó a añadirse a la lista.
+        Producto.Free;
+      end;
 
-    finally
-      Producto.Free;
+      qryListarProductos.Next;
     end;
 
-    // Avanzamos al siguiente registro devuelto por el SELECT.
-    qryListarProductos.Next;
+  finally
+    // La consulta se cierra incluso si ocurre un error
+    // durante la lectura de algún registro.
+    qryListarProductos.Close;
   end;
-
-  // Cerramos la consulta una vez terminada la lectura.
-  qryListarProductos.Close;
 end;
 
 
-procedure TdmDatos.InsertarProducto(const AProducto: TProducto);
+function TdmDatos.InsertarProducto(
+  const AProducto: TProducto
+): Boolean;
 begin
-  // Cada parámetro SQL recibe el valor correspondiente
-  // desde el objeto TProducto.
-  //
-  // No concatenamos texto para construir el INSERT.
+  // Asignamos al INSERT los valores procedentes
+  // del objeto TProducto.
   qryInsertarProducto.ParamByName('Codigo').AsString :=
     AProducto.Codigo;
 
@@ -199,9 +184,12 @@ begin
   qryInsertarProducto.ParamByName('Stock').AsInteger :=
     AProducto.Stock;
 
-  // ExecSQL ejecuta el INSERT porque esta sentencia
-  // modifica datos y no devuelve un conjunto de registros.
+  // Ejecutamos el INSERT parametrizado.
   qryInsertarProducto.ExecSQL;
+
+  // Igual que en UPDATE y DELETE, informamos al llamador
+  // de si SQLite ha modificado realmente alguna fila.
+  Result := qryInsertarProducto.RowsAffected > 0;
 end;
 
 
