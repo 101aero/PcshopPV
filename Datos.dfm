@@ -6,8 +6,8 @@ object dmDatos: TdmDatos
   object FDConnection1: TFDConnection
     Params.Strings = (
       
-        'Database=C:\Users\j\Documents\Embarcadero\Studio\Projects\c\pcsh' +
-        'op.db'
+        'Database=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\P' +
+        'rojects\c\pcshop.db'
       'LockingMode=Normal'
       'DriverID=SQLite')
     Left = 80
@@ -105,5 +105,21 @@ object dmDatos: TdmDatos
   object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
     Left = 288
     Top = 88
+  end
+  object qryBuscarProductos: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT Codigo, Nombre, Precio, Stock'
+      'FROM PRODUCTOS'
+      'WHERE Codigo LIKE :Busqueda'
+      '  OR Nombre LIKE :Busqueda'
+      'ORDER BY Codigo;')
+    Left = 224
+    Top = 272
+    ParamData = <
+      item
+        Name = 'BUSQUEDA'
+        ParamType = ptInput
+      end>
   end
 end

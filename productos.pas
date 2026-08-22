@@ -21,8 +21,13 @@ uses
 type
   TfrmProductos = class(TForm)
     lblModo: TLabel;
+    edtBusqueda: TEdit;
+    btnBuscarFiltro: TButton;
+    btnMostrarTodos: TButton;
     procedure FormCreate(Sender: TObject);
         procedure FormDestroy(Sender: TObject);
+    procedure btnMostrarTodosClick(Sender: TObject);
+    procedure btnBuscarFiltroClick(Sender: TObject);
 
   private
   FProducto: TProducto;
@@ -587,29 +592,27 @@ end;
     Producto.Precio := Precio;
     Producto.Stock := Stock;
 
-// Intentamos persistir primero los cambios en SQLite.
-// Si UPDATE no afecta ninguna fila, recuperamos de nuevo
-// los datos persistidos para evitar inconsistencias.
-if not dmDatos.ActualizarProducto(Producto) then
-begin
-  dmDatos.CargarProductos(FProductos);
-  ActualizarTablaDesdeColeccion;
 
-  ShowMessage('No se ha podido actualizar el producto en SQLite.');
-  Exit;
-end;
+    if dmDatos.ActualizarProducto(Producto)
+    then begin
 
-// A partir de aquí sabemos que SQLite ha confirmado el UPDATE.
-ActualizarTablaDesdeColeccion;
+    // Se reconstruye la tabla para mostrar los cambios.
+    ActualizarTablaDesdeColeccion;
 
-// Se abandona el modo de edición.
-FIndiceProductoSeleccionado := -1;
-edtCodigo.ReadOnly := False;
-lblModo.Caption := 'Modo: Alta';
+    // Se abandona el modo de edición.
+    FIndiceProductoSeleccionado := -1;
+    edtCodigo.ReadOnly:=false;
+    lblModo.Caption:='Modo alta';
 
-LimpiarCampos;
-ShowMessage('Producto modificado correctamente.');
-    
+    LimpiarCampos;
+    ShowMessage('Producto modificado correctamente.');
+          end else begin
+
+          dmDatos.CargarProductos(FProductos);
+          ActualizarTablaDesdeColeccion;
+          Showmessage('no se ha podido actualizar el producto en sqlite');
+                   end;
+
     //**
   end
   else
@@ -628,21 +631,13 @@ ShowMessage('Producto modificado correctamente.');
 // El formulario no conoce el SQL.
 // Entrega el objeto TProducto al Data Module,
 // que es responsable del acceso a la base de datos.
-// ----------------------------------------------------------;
+// ----------------------------------------------------------
+dmDatos.InsertarProducto(FProducto);
 
-// Intentamos persistir primero el producto en SQLite.
-// Si no se inserta ninguna fila, no modificamos la colección
-// ni mostramos en pantalla algo que realmente no se ha guardado.
 
-if not dmDatos.InsertarProducto(FProducto) then
-begin
-  ShowMessage('No se ha podido guardar el producto en SQLite.');
-  Exit;
-end;
 
-// Solo si SQLite confirma la inserción,
-// añadimos el objeto a la colección en memoria.
-FProductos.Add(FProducto);
+    // La colección pasa a ser propietaria del objeto.
+    FProductos.Add(FProducto);
 
     // Se muestra el contenido actualizado de la colección.
     ActualizarTablaDesdeColeccion;
@@ -659,6 +654,19 @@ FProductos.Add(FProducto);
 end;
 
 
+procedure TfrmProductos.btnMostrarTodosClick(Sender: TObject);
+begin
+  // Volvemos a cargar desde SQLite la lista completa
+  // de productos persistidos.
+  dmDatos.CargarProductos(FProductos);
+
+  // Reconstruimos el grid a partir de la colección completa.
+  ActualizarTablaDesdeColeccion;
+
+  // Limpiamos el criterio de búsqueda para dejar claro
+  // que ya no hay ningún filtro activo.
+  edtBusqueda.Clear;
+end;
 
 // ELIMINAR ****
 
@@ -755,6 +763,35 @@ begin
 
   ShowMessage('No se encuentra ningún producto.');
 end;
+
+
+
+
+procedure TfrmProductos.btnBuscarFiltroClick(Sender: TObject);
+begin
+  // Evitamos ejecutar una búsqueda vacía.
+  // Para recuperar todos los productos utilizaremos
+  // específicamente el botón "Mostrar todos".
+  if Trim(edtBusqueda.Text) = '' then
+  begin
+    ShowMessage('Introduce un código o nombre para buscar.');
+    edtBusqueda.SetFocus;
+    Exit;
+  end;
+
+  // El formulario únicamente solicita la operación.
+  // El SQL y FireDAC permanecen dentro del Data Module.
+  dmDatos.BuscarProductos(
+    FProductos,
+    edtBusqueda.Text
+  );
+
+  // FProductos contiene ahora únicamente
+  // los productos encontrados en SQLite.
+  ActualizarTablaDesdeColeccion;
+end;
+
+//+
 
 procedure TfrmProductos.btnCerrarClick(Sender: TObject);
 begin
