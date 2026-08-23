@@ -6,7 +6,7 @@ El proyecto forma parte de **InformatOLI** y tiene como objetivo desarrollar una
 
 ---
 
-## 🛠 Tecnologías
+## Tecnologías
 
 - Delphi 12.1 Community Edition
 - Object Pascal
@@ -20,20 +20,20 @@ El proyecto forma parte de **InformatOLI** y tiene como objetivo desarrollar una
 
 ---
 
-## 📦 Estado actual
+## Estado actual
 
-PC Shop permite gestionar productos utilizando:
+PC Shop permite gestionar productos utilizando los campos:
 
 - Código
 - Nombre
 - Precio
 - Stock
 
-La aplicación utiliza una base de datos SQLite local (`pcshop.db`) y dispone ya de **CRUD persistente completo**.
+La aplicación utiliza una base de datos SQLite local (`pcshop.db`) y dispone de **CRUD persistente completo** y **búsqueda por Código o Nombre**.
 
 ---
 
-## ✅ CRUD de PRODUCTOS
+## CRUD de PRODUCTOS
 
 Actualmente están implementadas las cuatro operaciones principales:
 
@@ -53,7 +53,46 @@ Los cambios permanecen almacenados después de cerrar y volver a ejecutar PC Sho
 
 ---
 
-## ✅ Funcionalidades implementadas
+## Búsqueda de productos
+
+La aplicación permite filtrar productos por:
+
+- Código.
+- Nombre completo.
+- Parte del nombre.
+
+La búsqueda se realiza mediante un `TFDQuery` específico en el Data Module y una consulta SQL parametrizada:
+
+```sql
+SELECT Codigo, Nombre, Precio, Stock
+FROM PRODUCTOS
+WHERE Codigo LIKE :Busqueda
+   OR Nombre LIKE :Busqueda
+ORDER BY Codigo;
+```
+
+El criterio introducido por el usuario se convierte en un patrón:
+
+```text
+tecl
+ ↓
+%tecl%
+```
+
+y se asigna mediante FireDAC:
+
+```pascal
+qryBuscarProductos.ParamByName('Busqueda').AsString :=
+  '%' + Trim(ABusqueda) + '%';
+```
+
+De esta forma, el contenido del `TEdit` no se concatena directamente dentro del SQL.
+
+Los resultados de la consulta se transforman nuevamente en objetos `TProducto`, se incorporan a `FProductos` y el `TStringGrid` se reconstruye desde la colección.
+
+---
+
+## Funcionalidades implementadas
 
 - Alta de productos.
 - Edición de productos existentes.
@@ -71,36 +110,42 @@ Los cambios permanecen almacenados después de cerrar y volver a ejecutar PC Sho
 - `DELETE` parametrizado.
 - Uso de `RowsAffected`.
 - Recuperación automática de productos al iniciar la aplicación.
+- Búsqueda por Código o Nombre.
+- Búsqueda parcial mediante `LIKE`.
+- Botón para recuperar de nuevo todos los productos.
 - Separación del acceso a datos mediante Data Module.
 - Persistencia entre ejecuciones.
+- Reutilización de la lógica de carga de productos.
 
 ---
 
-## 🏗 Arquitectura
+## Arquitectura
 
 La aplicación mantiene separadas la interfaz, el modelo y la persistencia.
 
 ```text
-Formulario VCL
-     ↓
-TProducto
-     ↓
-TObjectList<TProducto>
-     ↓
+Usuario
+   ↓
+VCL
+   ↓
+Productos.pas
+   ↓
+TProducto / FProductos
+   ↓
 Data Module
-     ↓
+   ↓
 FireDAC
-     ↓
+   ↓
 SQLite
 ```
 
 El formulario no ejecuta directamente sentencias SQL.
 
-Las operaciones sobre la base de datos se delegan al Data Module.
+Las operaciones de persistencia y búsqueda se delegan al Data Module.
 
 ---
 
-## 🗄 Base de datos
+## Base de datos
 
 Tabla principal:
 
@@ -117,23 +162,13 @@ Precio
 Stock
 ```
 
-Las operaciones utilizan parámetros FireDAC en lugar de concatenar directamente valores introducidos por el usuario.
+`Codigo` se mantiene como clave primaria e identificador del producto.
 
-Ejemplo:
-
-```sql
-UPDATE PRODUCTOS
-SET Nombre = :Nombre,
-    Precio = :Precio,
-    Stock = :Stock
-WHERE Codigo = :Codigo;
-```
-
-El mismo criterio se utiliza para las operaciones `INSERT` y `DELETE`.
+Las operaciones SQL utilizan parámetros FireDAC en lugar de concatenar directamente valores introducidos por el usuario.
 
 ---
 
-## 🔄 Persistencia
+## Flujo de persistencia
 
 ### Alta
 
@@ -170,6 +205,8 @@ TProducto
    ↓
 UPDATE
    ↓
+RowsAffected
+   ↓
 SQLite
 ```
 
@@ -189,9 +226,33 @@ FProductos
 TStringGrid
 ```
 
+### Búsqueda
+
+```text
+Usuario
+   ↓
+edtBusqueda
+   ↓
+Productos.pas
+   ↓
+dmDatos.BuscarProductos
+   ↓
+TFDQuery
+   ↓
+SQL parametrizado + LIKE
+   ↓
+SQLite
+   ↓
+TProducto
+   ↓
+FProductos
+   ↓
+TStringGrid
+```
+
 ---
 
-## 🔧 Problemas resueltos durante el desarrollo
+## Problemas resueltos durante el desarrollo
 
 Durante el desarrollo se han diagnosticado y corregido diferentes incidencias reales:
 
@@ -201,14 +262,16 @@ Durante el desarrollo se han diagnosticado y corregido diferentes incidencias re
 - Error `F2039` al permanecer `pcshop.exe` abierto.
 - Access Violation por utilizar el Data Module antes de su creación.
 - Corrección del orden de Auto-create forms.
-- Diferenciación entre modificar un objeto en memoria y persistir el cambio.
+- Diferenciación entre modificar un objeto en memoria y persistir realmente el cambio.
 - Uso de `RowsAffected` para comprobar operaciones SQL.
 - Error `Parameter 'Codigo' not found` debido a un parámetro SQL incorrecto.
 - Error `List index out of bounds` provocado por eliminar dos veces el mismo elemento de `FProductos`.
+- Error `unable to open database file` provocado por una ruta absoluta de `pcshop.db` procedente de otro equipo.
+- Comprobación del CRUD completo después de incorporar nuevas funcionalidades.
 
 ---
 
-## 📚 Diario de desarrollo
+## Diario de desarrollo
 
 ### AGOSTO — Semana 1
 
@@ -228,6 +291,8 @@ Se incorporan:
 
 **Semana completada: 4/4 jornadas.**
 
+---
+
 ### AGOSTO — Semana 2
 
 Se incorpora la persistencia mediante SQLite y FireDAC.
@@ -245,71 +310,121 @@ Se implementan:
 
 **Semana completada: 4/4 jornadas.**
 
+---
+
 ### AGOSTO — Semana 3
 
-#### Jornada 1 — CRUD persistente completo
+La semana se orienta a consolidar el CRUD y comenzar a construir funcionalidades sobre una arquitectura más mantenible.
 
-Se implementa:
+#### Jornada 1 — DELETE persistente
 
 - `DELETE` parametrizado.
 - Comprobación mediante `RowsAffected`.
 - Sincronización entre SQLite, `FProductos` y `TStringGrid`.
-- Eliminación persistente comprobada después de reiniciar PC Shop.
+- Depuración de errores en parámetros SQL y gestión de la colección.
 
-Con esta jornada queda completado el CRUD básico de `PRODUCTOS`.
+#### Jornada 2 — Validación completa del CRUD
 
-**Progreso semanal: 1/4 jornadas.**
+- Consolidación de `INSERT`, `SELECT`, `UPDATE` y `DELETE`.
+- `Codigo` se mantiene como clave primaria inmutable.
+- SQL centralizado en el Data Module.
+- Validación completa mediante cierre y reapertura de la aplicación.
+
+#### Jornada 3 — Refactorización de la capa de datos
+
+- Revisión de responsabilidades.
+- Mejora de la organización del Data Module.
+- Uso de `try/finally`.
+- Comprobación mediante `RowsAffected`.
+- Métodos con resultados `Boolean`.
+- Mayor separación entre formulario y persistencia.
+
+#### Jornada 4 — Búsqueda parametrizada
+
+- `edtBusqueda`.
+- `btnBuscarFiltro`.
+- `btnMostrarTodos`.
+- `qryBuscarProductos`.
+- `SELECT` con `LIKE`.
+- Parámetro `:Busqueda`.
+- Búsqueda por Código o Nombre.
+- Búsqueda parcial.
+- Conversión de cada fila SQL en `TProducto`.
+- Reutilización de `CargarProductos`.
+- Prueba completa del CRUD después de incorporar el filtro.
+
+**Semana completada: 4/4 jornadas. ✅**
 
 ---
 
-## 🎯 Próximos objetivos
+## Competencias trabajadas
 
-- Consolidar y revisar el CRUD completo.
-- Revisar definitivamente la persistencia del `UPDATE`.
-- Mejorar la capa de acceso a datos.
-- Reducir responsabilidades del formulario.
-- Mejorar búsquedas y filtrado.
-- Continuar incorporando funcionalidades progresivamente.
-- Seguir trabajando mantenimiento, depuración y calidad de código.
-
----
-
-## 💻 Objetivo del proyecto
-
-PC Shop no pretende ser un ERP complejo.
-
-Su objetivo es servir como una aplicación de escritorio funcional y como proyecto de portfolio para practicar y demostrar competencias relacionadas con:
+PC Shop sirve como proyecto de portfolio para practicar y demostrar competencias relacionadas con:
 
 - Delphi.
 - Object Pascal.
 - VCL.
 - Aplicaciones Windows.
 - FireDAC.
-- SQL.
-- Bases de datos relacionales.
 - SQLite.
+- SQL.
+- SQL parametrizado.
+- Bases de datos relacionales.
 - CRUD.
 - Persistencia.
 - Programación orientada a objetos.
 - Gestión de colecciones.
 - Separación de responsabilidades.
-- Mantenimiento.
+- Data Modules.
+- Mantenimiento de código existente.
+- Refactorización.
 - Depuración.
+- Resolución de errores.
 - Organización de aplicaciones.
 - Git y GitHub.
 
 ---
 
-## 🚀 Estado del proyecto
+## Próximos objetivos
 
-**CRUD persistente de PRODUCTOS completado. ✅**
+El siguiente objetivo es mejorar la portabilidad de la aplicación.
 
-Próximo hito:
+Actualmente se ha detectado que una ruta absoluta hacia `pcshop.db` puede impedir que PC Shop funcione correctamente al copiar el proyecto a otro ordenador.
 
-**Consolidar la capa de persistencia y continuar mejorando la arquitectura de PC Shop.**
+La evolución prevista es utilizar una ubicación relativa a la aplicación:
+
+```text
+PC Shop
+│
+├── pcshop.exe
+└── pcshop.db
+```
+
+Esto facilitará ejecutar el proyecto en:
+
+- PC de desarrollo.
+- Portátil.
+- Otro equipo Windows.
+- Repositorio clonado.
+
+Después se continuará con nuevas mejoras funcionales y de arquitectura.
 
 ---
 
-**InformatOLI**
+## Estado del proyecto
+
+**CRUD persistente de PRODUCTOS completado. ✅**
+
+**Búsqueda parametrizada por Código o Nombre completada. ✅**
+
+**AGOSTO — Semana 3 completada: 4/4 jornadas. ✅**
+
+Próximo hito:
+
+**Eliminar la dependencia de rutas absolutas para `pcshop.db` y mejorar la portabilidad de PC Shop.**
+
+---
+
+## InformatOLI
 
 https://informatoli.org
