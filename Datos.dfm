@@ -5,9 +5,6 @@ object dmDatos: TdmDatos
   PixelsPerInch = 134
   object FDConnection1: TFDConnection
     Params.Strings = (
-      
-        'Database=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\P' +
-        'rojects\c\pcshop.db'
       'LockingMode=Normal'
       'DriverID=SQLite')
     Left = 80
@@ -111,14 +108,19 @@ object dmDatos: TdmDatos
     SQL.Strings = (
       'SELECT Codigo, Nombre, Precio, Stock'
       'FROM PRODUCTOS'
-      'WHERE Codigo LIKE :Busqueda'
-      '  OR Nombre LIKE :Busqueda'
-      'ORDER BY Codigo;')
+      'WHERE Codigo = :Codigo'
+      '  OR Nombre LIKE :Nombre'
+      'ORDER BY Codigo'
+      'LIMIT 100;')
     Left = 224
     Top = 272
     ParamData = <
       item
-        Name = 'BUSQUEDA'
+        Name = 'CODIGO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'NOMBRE'
         ParamType = ptInput
       end>
   end

@@ -25,7 +25,9 @@ type
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
+  FUltimoError: string;
 public
+property UltimoError: string read FUltimoError;
 
 procedure BuscarProductos(
   ALista: TObjectList<TProducto>;
@@ -44,7 +46,7 @@ function ActualizarProducto(const AProducto: TProducto): Boolean;
   // ALista es la colección proporcionada por el formulario.
   procedure CargarProductos(ALista: TObjectList<TProducto>);
   // Guarda un producto en SQLite utilizando una consulta parametrizada.
-  procedure InsertarProducto(const AProducto: TProducto);
+  function InsertarProducto(const AProducto: TProducto): Boolean;
   end;
 
 var
@@ -55,40 +57,26 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
-
 procedure TdmDatos.DataModuleCreate(Sender: TObject);
+var
+  RutaBD: string;
 begin
-  // Se comprueba que la conexión con SQLite esté abierta.
-  // Si todavía no lo está, FireDAC realiza la conexión.
+  // El ejecutable se genera normalmente en Win32\Debug
+  // o Win32\Release. Subimos dos niveles hasta la carpeta
+  // del proyecto, donde se encuentra pcshop.db.
+  RutaBD := ExpandFileName(
+    ExtractFilePath(ParamStr(0)) + '..\..\pcshop.db'
+  );
+
+  // La ruta se establece antes de abrir la conexión.
+  // Así evitamos depender de una ruta absoluta de un PC concreto.
+  FDConnection1.Params.Values['Database'] := RutaBD;
+
   if not FDConnection1.Connected then
     FDConnection1.Connected := True;
 
-  // Ejecuta la sentencia CREATE TABLE almacenada
-  // en qryProductos.SQL.
-  //
-  // Como utilizamos IF NOT EXISTS, la sentencia también
-  // puede ejecutarse cuando PRODUCTOS ya existe.
   qryProductos.ExecSQL;
-
-  // ----------------------------------------------------------
-// Después de crear PRODUCTOS, comprobamos que la tabla
-// aparece realmente en el esquema interno de SQLite.
-// ----------------------------------------------------------
-
-qryProductos.Close;
-
-qryProductos.SQL.Text :=
-  'SELECT name FROM sqlite_schema ' +
-  'WHERE type = ''table'' AND name = ''PRODUCTOS'';';
-
-// SELECT devuelve registros, por lo que se utiliza Open
-// en lugar de ExecSQL.
-qryProductos.Open;
-
-if not qryProductos.IsEmpty then
-  ShowMessage('Conexión SQLite correcta. Tabla PRODUCTOS creada.');
 end;
-
 
 
 
@@ -105,13 +93,14 @@ begin
 
   qryBuscarProductos.Close;
 
-  // Los caracteres % permiten encontrar coincidencias parciales.
-  // Ejemplo: "tecl" se convierte en "%tecl%".
-  //
-  // El valor se asigna mediante un parámetro FireDAC:
-  // no se concatena dentro de la sentencia SQL.
-  qryBuscarProductos.ParamByName('Busqueda').AsString :=
-    '%' + Trim(ABusqueda) + '%';
+// Para el código buscamos coincidencia exacta.
+qryBuscarProductos.ParamByName('Codigo').AsString :=
+  Trim(ABusqueda);
+
+// Para el nombre permitimos coincidencias parciales.
+// Los símbolos % significan "cualquier texto antes o después".
+qryBuscarProductos.ParamByName('Nombre').AsString :=
+  '%' + Trim(ABusqueda) + '%';
 
   qryBuscarProductos.Open;
 
@@ -249,27 +238,45 @@ begin
 end;
 
 
-procedure TdmDatos.InsertarProducto(const AProducto: TProducto);
+function TdmDatos.InsertarProducto(
+  const AProducto: TProducto
+): Boolean;
 begin
-  // Cada parámetro SQL recibe el valor correspondiente
-  // desde el objeto TProducto.
-  //
-  // No concatenamos texto para construir el INSERT.
-  qryInsertarProducto.ParamByName('Codigo').AsString :=
-    AProducto.Codigo;
+  // Cada operación comienza sin arrastrar errores anteriores.
+  FUltimoError := '';
 
-  qryInsertarProducto.ParamByName('Nombre').AsString :=
-    AProducto.Nombre;
+  try
+    qryInsertarProducto.ParamByName('Codigo').AsString :=
+      AProducto.Codigo;
 
-  qryInsertarProducto.ParamByName('Precio').AsFloat :=
-    AProducto.Precio;
+    qryInsertarProducto.ParamByName('Nombre').AsString :=
+      AProducto.Nombre;
 
-  qryInsertarProducto.ParamByName('Stock').AsInteger :=
-    AProducto.Stock;
+    qryInsertarProducto.ParamByName('Precio').AsFloat :=
+      AProducto.Precio;
 
-  // ExecSQL ejecuta el INSERT porque esta sentencia
-  // modifica datos y no devuelve un conjunto de registros.
-  qryInsertarProducto.ExecSQL;
+    qryInsertarProducto.ParamByName('Stock').AsInteger :=
+      AProducto.Stock;
+
+    qryInsertarProducto.ExecSQL;
+
+    Result := qryInsertarProducto.RowsAffected > 0;
+
+    // SQL se ha ejecutado sin excepción, pero no ha producido
+    // la modificación esperada.
+    if not Result then
+      FUltimoError :=
+        'No se ha podido insertar el producto.';
+  except
+    on E: Exception do
+    begin
+      // Error técnico producido por FireDAC o SQLite.
+      FUltimoError :=
+        'No se ha podido insertar el producto: ' + E.Message;
+
+      Result := False;
+    end;
+  end;
 end;
 
 

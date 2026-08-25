@@ -3,6 +3,7 @@
 interface
 
 uses
+  System.Diagnostics,
   Winapi.Windows,
   Winapi.Messages,
   System.SysUtils,
@@ -24,10 +25,13 @@ type
     edtBusqueda: TEdit;
     btnBuscarFiltro: TButton;
     btnMostrarTodos: TButton;
+    lblEstadoBusqueda: TLabel;
     procedure FormCreate(Sender: TObject);
         procedure FormDestroy(Sender: TObject);
     procedure btnMostrarTodosClick(Sender: TObject);
     procedure btnBuscarFiltroClick(Sender: TObject);
+    procedure edtBusquedaKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
 
   private
   FProducto: TProducto;
@@ -276,10 +280,10 @@ procedure TfrmProductos.CrearInterfaz;
 begin
   lblTitulo := TLabel.Create(Self);
   lblTitulo.Parent := Self;
-  lblTitulo.Left := 24;
-  lblTitulo.Top := 20;
+  lblTitulo.Left := 4;
+  lblTitulo.Top := 10;
   lblTitulo.Caption := 'Gestión de productos';
-  lblTitulo.Font.Size := 16;
+  lblTitulo.Font.Size := 7;
   lblTitulo.Font.Style := [fsBold];
 
   lblCodigo := TLabel.Create(Self);
@@ -393,6 +397,24 @@ edtNombre.MaxLength := 100;
 // su evento también se asigna manualmente.
 grdProductos.OnSelectCell := grdProductosSelectCell;
 
+end;
+
+procedure TfrmProductos.edtBusquedaKeyDown(
+  Sender: TObject;
+  var Key: Word;
+  Shift: TShiftState
+);
+begin
+  // Permite iniciar la búsqueda directamente con Enter.
+  // Reutilizamos el mismo código del botón para no
+  // duplicar la lógica de búsqueda.
+  if Key = VK_RETURN then
+  begin
+    btnBuscarFiltroClick(btnBuscarFiltro);
+
+    // Evita que Enter siga procesándose después.
+    Key := 0;
+  end;
 end;
 
 procedure TfrmProductos.PrepararTabla;
@@ -632,12 +654,23 @@ end;
 // Entrega el objeto TProducto al Data Module,
 // que es responsable del acceso a la base de datos.
 // ----------------------------------------------------------
-dmDatos.InsertarProducto(FProducto);
+// Intentamos guardar primero el producto en SQLite.
+// Si la persistencia falla, no añadimos el objeto
+// a la colección en memoria.
+if not dmDatos.InsertarProducto(FProducto) then
+begin
+  ShowMessage(
+    'No se ha podido guardar el producto.' +
+    sLineBreak +
+    dmDatos.UltimoError
+  );
 
+  Exit;
+end;
 
-
-    // La colección pasa a ser propietaria del objeto.
-    FProductos.Add(FProducto);
+// Solo llegamos aquí si SQLite ha confirmado el alta.
+// La colección pasa entonces a ser propietaria del objeto.
+FProductos.Add(FProducto);
 
     // Se muestra el contenido actualizado de la colección.
     ActualizarTablaDesdeColeccion;
@@ -768,6 +801,8 @@ end;
 
 
 procedure TfrmProductos.btnBuscarFiltroClick(Sender: TObject);
+var
+  Cronometro: TStopwatch;
 begin
   // Evitamos ejecutar una búsqueda vacía.
   // Para recuperar todos los productos utilizaremos
@@ -779,6 +814,9 @@ begin
     Exit;
   end;
 
+  // Comenzamos a medir justo antes de solicitar los datos.
+  Cronometro := TStopwatch.StartNew;
+
   // El formulario únicamente solicita la operación.
   // El SQL y FireDAC permanecen dentro del Data Module.
   dmDatos.BuscarProductos(
@@ -789,6 +827,29 @@ begin
   // FProductos contiene ahora únicamente
   // los productos encontrados en SQLite.
   ActualizarTablaDesdeColeccion;
+
+  // Detenemos la medición cuando también está actualizado el grid.
+  Cronometro.Stop;
+
+  // Mostramos cantidad de resultados y tiempo empleado.
+  lblEstadoBusqueda.Caption :=
+    IntToStr(FProductos.Count) +
+    ' resultados — ' +
+    IntToStr(Cronometro.ElapsedMilliseconds) +
+    ' ms';
+
+  // Si alcanzamos el límite configurado en SQL,
+  // advertimos de que puede haber más coincidencias.
+  if FProductos.Count = 100 then
+  begin
+    ShowMessage(
+      'Se muestran los primeros 100 resultados.' +
+      sLineBreak +
+      'Refina la búsqueda para obtener una lista más precisa.'
+    );
+  end;
+
+//
 end;
 
 //+
