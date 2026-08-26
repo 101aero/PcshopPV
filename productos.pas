@@ -71,6 +71,8 @@ FIndiceProductoSeleccionado: Integer;
 
     grdProductos: TStringGrid;
 
+    procedure ComprobarConsistenciaProductos;
+
     procedure CrearInterfaz;
     procedure PrepararTabla;
     procedure LimpiarCampos;
@@ -151,6 +153,40 @@ fproducto:=TProducto.Create;
   // Muestra en el TStringGrid los objetos cargados
   // desde la base de datos.
   ActualizarTablaDesdeColeccion;
+
+  // COMPROBAMOS
+  // En este punto FProductos contiene todos los registros
+// recuperados de SQLite, por lo que ambos totales deben coincidir.
+ComprobarConsistenciaProductos;
+end;
+
+
+
+
+procedure TfrmProductos.ComprobarConsistenciaProductos;
+var
+  TotalSQLite: Integer;
+begin
+  TotalSQLite := dmDatos.ObtenerTotalProductos;
+
+  if TotalSQLite <> FProductos.Count then
+  begin
+    // Dejamos constancia técnica para poder investigar
+    // posteriormente una posible desincronización.
+    dmDatos.RegistrarDiagnostico(
+      'CONSISTENCIA PRODUCTOS',
+      'SQLite=' + IntToStr(TotalSQLite) +
+      ' | Memoria=' + IntToStr(FProductos.Count)
+    );
+
+    ShowMessage(
+      'Se ha detectado una diferencia entre SQLite y la memoria.' +
+      sLineBreak +
+      'SQLite: ' + IntToStr(TotalSQLite) +
+      sLineBreak +
+      'Memoria: ' + IntToStr(FProductos.Count)
+    );
+  end;
 end;
 
 {
@@ -568,7 +604,7 @@ end;
 
 
     // ----------------------------------------------------------
-// Se comprueba que el código del producto sea único.
+// EVITA DUPLICADOS (Se comprueba que el código del producto sea único)
 //
 // Se recorren todos los objetos almacenados en FProductos.
 // Si se encuentra el mismo código en otro producto,
@@ -590,6 +626,7 @@ begin
     Exit;
   end;
 end;
+
 
     // ------VALOR -1 = NUEVO PRODUCTO
   // Se comprueba si se modifica un producto existente

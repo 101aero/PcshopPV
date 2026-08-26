@@ -124,4 +124,12 @@ object dmDatos: TdmDatos
         ParamType = ptInput
       end>
   end
+  object qryContarProductos: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT COUNT(*) AS Total'
+      'FROM PRODUCTOS;')
+    Left = 496
+    Top = 72
+  end
 end

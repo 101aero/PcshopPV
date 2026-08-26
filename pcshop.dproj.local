@@ -3,16 +3,16 @@
 	<Transactions>
     <Transaction>2026/07/15 17:36:05.000.938,=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
     <Transaction>2026/07/30 16:10:10.000.745,=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
-    <Transaction>2026/07/30 16:10:47.000.259,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Unit1.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\principal.pas</Transaction>
-    <Transaction>2026/07/30 16:10:47.000.259,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Unit1.dfm=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\principal.dfm</Transaction>
-    <Transaction>2026/07/30 16:10:56.000.466,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Project1.dproj=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\pcshop.dproj</Transaction>
+    <Transaction>2026/07/30 16:10:47.000.259,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\principal.dfm=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>2026/07/30 16:10:47.000.259,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\principal.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2026/07/30 16:10:56.000.466,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\pcshop.dproj=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
     <Transaction>2026/07/31 08:55:51.000.252,=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas</Transaction>
-    <Transaction>2026/07/31 08:56:21.000.595,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\productos.pas</Transaction>
-    <Transaction>2026/07/31 08:56:21.000.595,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.dfm=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\productos.dfm</Transaction>
+    <Transaction>2026/07/31 08:56:21.000.595,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\productos.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas</Transaction>
+    <Transaction>2026/07/31 08:56:21.000.595,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\productos.dfm=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.dfm</Transaction>
     <Transaction>2026/08/02 07:36:15.000.727,=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas</Transaction>
-    <Transaction>2026/08/02 07:36:37.000.395,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\uproducto.pas</Transaction>
+    <Transaction>2026/08/02 07:36:37.000.395,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\uproducto.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas</Transaction>
     <Transaction>2026/08/10 13:50:28.000.060,=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas</Transaction>
-    <Transaction>2026/08/10 13:50:48.000.842,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.dfm=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Datos.dfm</Transaction>
-    <Transaction>2026/08/10 13:50:48.000.842,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Datos.pas</Transaction>
+    <Transaction>2026/08/10 13:50:48.000.842,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Datos.dfm=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.dfm</Transaction>
+    <Transaction>2026/08/10 13:50:48.000.842,C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Datos.pas=C:\Users\wende\OneDrive\Documentos\Embarcadero\Studio\Projects\c\Unit1.pas</Transaction>
   </Transactions>
 </BorlandProject>
