@@ -31,7 +31,11 @@ type
   procedure RegistrarError(
   const AOperacion: string;
   const AMensaje: string
-);
+                          );
+      function CrearProductoDesdeQuery(
+  AQuery: TFDQuery
+): TProducto;
+
 
 
 
@@ -94,6 +98,40 @@ begin
   qryProductos.ExecSQL;
 end;
 // END-CREATE //
+
+
+
+
+function TdmDatos.CrearProductoDesdeQuery(
+  AQuery: TFDQuery
+): TProducto;
+begin
+  Result := TProducto.Create;
+
+  try
+    // Centralizamos aquí la conversión de una fila SQL
+    // al modelo utilizado por la aplicación.
+    Result.Codigo :=
+      AQuery.FieldByName('Codigo').AsString;
+
+    Result.Nombre :=
+      AQuery.FieldByName('Nombre').AsString;
+
+    Result.Precio :=
+      AQuery.FieldByName('Precio').AsFloat;
+
+    Result.Stock :=
+      AQuery.FieldByName('Stock').AsInteger;
+
+  except
+    // Si falla la lectura de algún campo,
+    // evitamos dejar un objeto creado sin liberar.
+    Result.Free;
+    raise;
+  end;
+end;
+
+
 
 
 
@@ -179,34 +217,24 @@ qryBuscarProductos.ParamByName('Nombre').AsString :=
   qryBuscarProductos.Open;
 
   try
-    while not qryBuscarProductos.Eof do
-    begin
-      Producto := TProducto.Create;
+ while not qryBuscarProductos.Eof do
+begin
+  // Reutilizamos el mismo mapeo SQL ? TProducto
+  // que utiliza la carga completa de productos.
+  Producto := CrearProductoDesdeQuery(qryBuscarProductos);
 
-      try
-        // Convertimos cada registro SQL en un TProducto.
-        Producto.Codigo :=
-          qryBuscarProductos.FieldByName('Codigo').AsString;
+  try
+    ALista.Add(Producto);
 
-        Producto.Nombre :=
-          qryBuscarProductos.FieldByName('Nombre').AsString;
+    // A partir de aquí la colección es propietaria
+    // del objeto y será responsable de liberarlo.
+    Producto := nil;
+  finally
+    Producto.Free;
+  end;
 
-        Producto.Precio :=
-          qryBuscarProductos.FieldByName('Precio').AsFloat;
-
-        Producto.Stock :=
-          qryBuscarProductos.FieldByName('Stock').AsInteger;
-
-        // La colección pasa a ser propietaria del objeto.
-        ALista.Add(Producto);
-        Producto := nil;
-
-      finally
-        Producto.Free;
-      end;
-
-      qryBuscarProductos.Next;
-    end;
+  qryBuscarProductos.Next;
+end;
 
   finally
     // La consulta se cierra incluso si ocurre algún error.
@@ -269,59 +297,42 @@ begin
 end;
 
 
+
+
+
+// CARGAR-PRODUCTOS
+// *
 procedure TdmDatos.CargarProductos(ALista: TObjectList<TProducto>);
 var
   Producto: TProducto;
 begin
-  // Eliminamos cualquier contenido anterior para evitar
-  // cargar dos veces los mismos productos en memoria.
+  // Eliminamos el contenido anterior para evitar
+  // duplicar los productos cargados en memoria.
   ALista.Clear;
 
-  // Cerramos la consulta por seguridad antes de abrirla de nuevo.
   qryListarProductos.Close;
-
-  // Open ejecuta el SELECT configurado en qryListarProductos
-  // y deja disponibles los registros devueltos.
   qryListarProductos.Open;
 
-  // Eof significa "End Of File".
-  // Mientras no lleguemos al final, procesamos cada registro.
-  while not qryListarProductos.Eof do
-  begin
-    Producto := TProducto.Create;
+  try
+while not qryListarProductos.Eof do
+begin
+  Producto := CrearProductoDesdeQuery(qryListarProductos);
 
-    try
-      // Convertimos las columnas de SQLite
-      // en propiedades de un objeto TProducto.
-      Producto.Codigo :=
-        qryListarProductos.FieldByName('Codigo').AsString;
-
-      Producto.Nombre :=
-        qryListarProductos.FieldByName('Nombre').AsString;
-
-      Producto.Precio :=
-        qryListarProductos.FieldByName('Precio').AsFloat;
-
-      Producto.Stock :=
-        qryListarProductos.FieldByName('Stock').AsInteger;
-
-      // La colección pasa a ser propietaria del objeto.
-      ALista.Add(Producto);
-
-      // Evitamos que el bloque finally libere un objeto
-      // que ya pertenece a la colección.
-      Producto := nil;
-
-    finally
-      Producto.Free;
-    end;
-
-    // Avanzamos al siguiente registro devuelto por el SELECT.
-    qryListarProductos.Next;
+  try
+    ALista.Add(Producto);
+    Producto := nil;
+  finally
+    Producto.Free;
   end;
 
-  // Cerramos la consulta una vez terminada la lectura.
-  qryListarProductos.Close;
+  qryListarProductos.Next;
+end;
+
+  finally
+    // La consulta siempre queda cerrada,
+    // incluso si ocurre una excepción durante la carga.
+    qryListarProductos.Close;
+  end;
 end;
 
 

@@ -72,10 +72,12 @@ FIndiceProductoSeleccionado: Integer;
     grdProductos: TStringGrid;
 
     procedure ComprobarConsistenciaProductos;
-
     procedure CrearInterfaz;
     procedure PrepararTabla;
     procedure LimpiarCampos;
+
+
+
 
 procedure grdProductosSelectCell(
   Sender: TObject;
@@ -93,6 +95,10 @@ procedure ActualizarTablaDesdeColeccion;
     procedure btnEliminarClick(Sender: TObject);
     procedure btnBuscarClick(Sender: TObject);
     procedure btnCerrarClick(Sender: TObject);
+
+
+
+
   public
   end;
 
@@ -159,6 +165,11 @@ fproducto:=TProducto.Create;
 // recuperados de SQLite, por lo que ambos totales deben coincidir.
 ComprobarConsistenciaProductos;
 end;
+
+
+
+
+
 
 
 
