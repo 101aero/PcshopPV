@@ -132,4 +132,41 @@ object dmDatos: TdmDatos
     Left = 496
     Top = 72
   end
+  object qryExisteCodigo: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT COUNT(*) AS Total'
+      'FROM PRODUCTOS'
+      'WHERE Codigo = :Codigo;')
+    Left = 592
+    Top = 328
+    ParamData = <
+      item
+        Name = 'CODIGO'
+        ParamType = ptInput
+      end>
+  end
+  object qryStockBajo: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT Codigo, Nombre, Precio, Stock'
+      'FROM PRODUCTOS'
+      'WHERE Stock <= :StockMaximo'
+      'ORDER BY Stock ASC, Nombre ASC;')
+    Left = 744
+    Top = 344
+    ParamData = <
+      item
+        Name = 'STOCKMAXIMO'
+        ParamType = ptInput
+      end>
+  end
+  object qryValorInventario: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT COALESCE(SUM(Precio * Stock), 0) AS ValorTotal'
+      'FROM PRODUCTOS;')
+    Left = 856
+    Top = 344
+  end
 end

@@ -21,17 +21,25 @@ uses
 
 type
   TfrmProductos = class(TForm)
-    lblModo: TLabel;
+    grpfiltros: TGroupBox;
     edtBusqueda: TEdit;
     btnBuscarFiltro: TButton;
+    edtFiltroStock: TEdit;
+    btnStockBajo: TButton;
     btnMostrarTodos: TButton;
     lblEstadoBusqueda: TLabel;
+    lblModo: TLabel;
+    lblFiltroStock: TLabel;
+    btnValorInventario: TButton;
+    lblValorInventario: TLabel;
     procedure FormCreate(Sender: TObject);
         procedure FormDestroy(Sender: TObject);
     procedure btnMostrarTodosClick(Sender: TObject);
     procedure btnBuscarFiltroClick(Sender: TObject);
     procedure edtBusquedaKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure btnStockBajoClick(Sender: TObject);
+    procedure btnValorInventarioClick(Sender: TObject);
 
   private
   FProducto: TProducto;
@@ -70,6 +78,10 @@ FIndiceProductoSeleccionado: Integer;
     btnCerrar: TButton;
 
     grdProductos: TStringGrid;
+
+    procedure ActualizarValorInventario;
+
+    procedure RefrescarVistaProductos;
 
     procedure ComprobarConsistenciaProductos;
     procedure CrearInterfaz;
@@ -143,9 +155,9 @@ fproducto:=TProducto.Create;
   Caption := 'Productos';
   Position := poScreenCenter;
   Width := 900;
-  Height := 620;
+  Height := 680;
   Constraints.MinWidth := 800;
-  Constraints.MinHeight := 550;
+  Constraints.MinHeight := 650;
 
 
 
@@ -168,6 +180,43 @@ end;
 
 
 
+
+procedure TfrmProductos.ActualizarValorInventario;
+var
+  ValorTotal: Double;
+begin
+  // SQLite realiza el cálculo agregado del inventario.
+  ValorTotal := dmDatos.ObtenerValorInventario;
+
+  // El formulario únicamente presenta el resultado.
+  lblValorInventario.Caption :=
+    'Valor total: ' +
+    FormatFloat('0.00', ValorTotal) +
+    ' €';
+end;
+
+
+
+
+
+
+procedure TfrmProductos.RefrescarVistaProductos;
+begin
+  // Si existe un criterio de búsqueda, mantenemos
+  // la vista filtrada consultando nuevamente SQLite.
+  if Trim(edtBusqueda.Text) <> '' then
+    dmDatos.BuscarProductos(
+      FProductos,
+      edtBusqueda.Text
+    )
+  else
+    // Sin filtro cargamos la colección completa.
+    dmDatos.CargarProductos(FProductos);
+
+  // El TStringGrid siempre se reconstruye a partir
+  // de los datos que acaba de devolver SQLite.
+  ActualizarTablaDesdeColeccion;
+end;
 
 
 
@@ -328,21 +377,21 @@ begin
   lblTitulo := TLabel.Create(Self);
   lblTitulo.Parent := Self;
   lblTitulo.Left := 4;
-  lblTitulo.Top := 10;
+  lblTitulo.Top := 136;
   lblTitulo.Caption := 'Gestión de productos';
-  lblTitulo.Font.Size := 7;
+  lblTitulo.Font.Size := 12;
   lblTitulo.Font.Style := [fsBold];
 
   lblCodigo := TLabel.Create(Self);
   lblCodigo.Parent := Self;
   lblCodigo.Left := 24;
-  lblCodigo.Top := 75;
+  lblCodigo.Top := 178;
   lblCodigo.Caption := 'Código:';
 
   edtCodigo := TEdit.Create(Self);
   edtCodigo.Parent := Self;
   edtCodigo.Left := 125;
-  edtCodigo.Top := 70;
+  edtCodigo.Top := 173;
   edtCodigo.Width := 180;
   edtCodigo.MaxLength := 20;
 
@@ -350,14 +399,14 @@ begin
 lblNombre := TLabel.Create(Self);
 lblNombre.Parent := Self;
 lblNombre.Left := 24;
-lblNombre.Top := 110;
+lblNombre.Top := 213;
 lblNombre.Caption := 'Nombre:';
 
 // Campo donde el usuario introduce el nombre.
 edtNombre := TEdit.Create(Self);
 edtNombre.Parent := Self;
 edtNombre.Left := 125;
-edtNombre.Top := 105;
+edtNombre.Top := 208;
 edtNombre.Width := 400;
 edtNombre.MaxLength := 100;
 
@@ -368,33 +417,33 @@ edtNombre.MaxLength := 100;
   lblPrecio := TLabel.Create(Self);
   lblPrecio.Parent := Self;
   lblPrecio.Left := 420;
-  lblPrecio.Top := 75;
+  lblPrecio.Top := 178;
   lblPrecio.Caption := 'Precio:';
 
   edtPrecio := TEdit.Create(Self);
   edtPrecio.Parent := Self;
   edtPrecio.Left := 480;
-  edtPrecio.Top := 70;
+  edtPrecio.Top := 173;
   edtPrecio.Width := 120;
   edtPrecio.TextHint := '0,00';
 
   lblStock := TLabel.Create(Self);
   lblStock.Parent := Self;
   lblStock.Left := 630;
-  lblStock.Top := 75;
+  lblStock.Top := 178;
   lblStock.Caption := 'Stock:';
 
   edtStock := TEdit.Create(Self);
   edtStock.Parent := Self;
   edtStock.Left := 680;
-  edtStock.Top := 70;
+  edtStock.Top := 173;
   edtStock.Width := 100;
   edtStock.TextHint := '0';
 
   btnNuevo := TButton.Create(Self);
   btnNuevo.Parent := Self;
   btnNuevo.Left := 24;
-  btnNuevo.Top := 195;
+  btnNuevo.Top := 250;
   btnNuevo.Width := 100;
   btnNuevo.Caption := 'Nuevo';
   btnNuevo.OnClick := btnNuevoClick;
@@ -402,7 +451,7 @@ edtNombre.MaxLength := 100;
   btnGuardar := TButton.Create(Self);
   btnGuardar.Parent := Self;
   btnGuardar.Left := 135;
-  btnGuardar.Top := 195;
+  btnGuardar.Top := 250;
   btnGuardar.Width := 100;
   btnGuardar.Caption := 'Guardar';
   btnGuardar.OnClick := btnGuardarClick;
@@ -410,7 +459,7 @@ edtNombre.MaxLength := 100;
   btnEliminar := TButton.Create(Self);
   btnEliminar.Parent := Self;
   btnEliminar.Left := 246;
-  btnEliminar.Top := 195;
+  btnEliminar.Top := 250;
   btnEliminar.Width := 100;
   btnEliminar.Caption := 'Eliminar';
   btnEliminar.OnClick := btnEliminarClick;
@@ -418,7 +467,7 @@ edtNombre.MaxLength := 100;
   btnBuscar := TButton.Create(Self);
   btnBuscar.Parent := Self;
   btnBuscar.Left := 357;
-  btnBuscar.Top := 195;
+  btnBuscar.Top := 250;
   btnBuscar.Width := 100;
   btnBuscar.Caption := 'Buscar';
   btnBuscar.OnClick := btnBuscarClick;
@@ -426,7 +475,7 @@ edtNombre.MaxLength := 100;
   btnCerrar := TButton.Create(Self);
   btnCerrar.Parent := Self;
   btnCerrar.Left := 680;
-  btnCerrar.Top := 195;
+  btnCerrar.Top := 250;
   btnCerrar.Width := 100;
   btnCerrar.Caption := 'Cerrar';
   btnCerrar.OnClick := btnCerrarClick;
@@ -436,9 +485,9 @@ edtNombre.MaxLength := 100;
   grdProductos := TStringGrid.Create(Self);
   grdProductos.Parent := Self;
   grdProductos.Left := 24;
-  grdProductos.Top := 250;
+  grdProductos.Top := 300;
   grdProductos.Width := 800;
-  grdProductos.Height := 290;
+  grdProductos.Height := 310;
   grdProductos.Anchors := [akLeft, akTop, akRight, akBottom];
   // Como el TStringGrid se crea mediante código,
 // su evento también se asigna manualmente.
@@ -516,6 +565,83 @@ begin
 
   LimpiarCampos;
 end;
+
+
+
+
+procedure TfrmProductos.btnStockBajoClick(Sender: TObject);
+var
+  StockMaximo: Integer;
+begin
+  // Comprobamos que el usuario haya introducido
+  // un número entero válido.
+  if not TryStrToInt(
+    Trim(edtFiltroStock.Text),
+    StockMaximo
+  ) then
+  begin
+    ShowMessage(
+      'Introduce un valor de stock válido.'
+    );
+
+    edtFiltroStock.SetFocus;
+    Exit;
+  end;
+
+  // Un stock máximo negativo no tendría sentido
+  // para este filtro.
+  if StockMaximo < 0 then
+  begin
+    ShowMessage(
+      'El stock máximo no puede ser negativo.'
+    );
+
+    edtFiltroStock.SetFocus;
+    Exit;
+  end;
+
+  // El formulario solo entrega el criterio.
+  // El filtrado real se realiza en SQLite
+  // desde el Data Module.
+  dmDatos.FiltrarProductosStockBajo(
+    FProductos,
+    StockMaximo
+  );
+
+  ActualizarTablaDesdeColeccion;
+
+  lblEstadoBusqueda.Caption :=
+    IntToStr(FProductos.Count) +
+    ' productos con stock <= ' +
+    IntToStr(StockMaximo);
+
+
+
+end;
+
+
+
+
+
+
+
+
+
+
+
+procedure TfrmProductos.btnValorInventarioClick(Sender: TObject);
+var
+  ValorTotal: Double;
+begin
+  ActualizarValorInventario;
+
+end;
+
+
+
+
+
+
 
 (* BOTÓN GUARDAR DATOS:
 Usuario
@@ -613,17 +739,30 @@ end;
     Exit;
   end;
 
+  // Solo comprobamos duplicados durante un ALTA.
+// En edición el código permanece bloqueado y corresponde
+// al producto que ya existe en SQLite.
+if FIndiceProductoSeleccionado < 0 then
+begin
+  // Consultamos directamente SQLite en lugar de recorrer
+  // FProductos, porque la colección puede estar filtrada
+  // y no contener todos los productos existentes.
+  if dmDatos.ExisteCodigoProducto(Trim(edtCodigo.Text)) then
+  begin
+    ShowMessage('Ya existe un producto con ese código.');
+    edtCodigo.SetFocus;
+    Exit;
+  end;
+end;
 
-    // ----------------------------------------------------------
-// EVITA DUPLICADOS (Se comprueba que el código del producto sea único)
+
+    (* ----------------------------------------------------------
+//ANTIGUO>>>> EVITA DUPLICADOS (Se comprueba que el código del producto sea único)
 //
 // Se recorren todos los objetos almacenados en FProductos.
 // Si se encuentra el mismo código en otro producto,
 // se cancela la operación.
-//
-// Durante una modificación se ignora el propio producto
-// seleccionado, ya que puede conservar su código actual.
-// ----------------------------------------------------------
+
 for I := 0 to FProductos.Count - 1 do
 begin
   if SameText(
@@ -633,10 +772,7 @@ begin
      (I <> FIndiceProductoSeleccionado) then
   begin
     ShowMessage('Ya existe un producto con ese código.');
-    edtCodigo.SetFocus;
-    Exit;
-  end;
-end;
+  <<<<<                       *)
 
 
     // ------VALOR -1 = NUEVO PRODUCTO
@@ -666,8 +802,10 @@ end;
     if dmDatos.ActualizarProducto(Producto)
     then begin
 
-    // Se reconstruye la tabla para mostrar los cambios.
-    ActualizarTablaDesdeColeccion;
+// SQLite ya ha confirmado el UPDATE.
+// Recargamos la vista actual para mantener el filtro
+// si el usuario estaba realizando una búsqueda.
+RefrescarVistaProductos;
 
     // Se abandona el modo de edición.
     FIndiceProductoSeleccionado := -1;
@@ -737,17 +875,19 @@ end;
 
 procedure TfrmProductos.btnMostrarTodosClick(Sender: TObject);
 begin
-  // Volvemos a cargar desde SQLite la lista completa
-  // de productos persistidos.
-  dmDatos.CargarProductos(FProductos);
-
-  // Reconstruimos el grid a partir de la colección completa.
-  ActualizarTablaDesdeColeccion;
-
-  // Limpiamos el criterio de búsqueda para dejar claro
-  // que ya no hay ningún filtro activo.
+  // Eliminamos el criterio de búsqueda.
+  // RefrescarVistaProductos detectará que ya no existe filtro
+  // y volverá a cargar todos los productos desde SQLite.
   edtBusqueda.Clear;
+
+  RefrescarVistaProductos;
+
+  // Ya no estamos mostrando el resultado de una búsqueda.
+  lblEstadoBusqueda.Caption := '';
 end;
+
+
+
 
 // ELIMINAR ****
 
@@ -789,15 +929,10 @@ begin
   Exit;
 end;
 
-// Solo después de eliminar correctamente en SQLite,
-// eliminamos el objeto de la colección en memoria.
-FProductos.Delete(Fila - 1);
-
-// Reconstruimos el TStringGrid desde FProductos.
-    //
-   // Se reconstruye la tabla utilizando la colección,
-// que actúa como fuente principal de los datos.
-ActualizarTablaDesdeColeccion;
+// SQLite ya ha confirmado el DELETE.
+// Recargamos la vista desde la base de datos para mantener
+// correctamente la vista completa o el filtro activo.
+RefrescarVistaProductos;
 
 
 // Ya no existe ningún producto seleccionado.

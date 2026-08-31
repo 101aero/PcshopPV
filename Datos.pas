@@ -23,6 +23,9 @@ type
     FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
     qryBuscarProductos: TFDQuery;
     qryContarProductos: TFDQuery;
+    qryExisteCodigo: TFDQuery;
+    qryStockBajo: TFDQuery;
+    qryValorInventario: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -40,6 +43,17 @@ type
 
 
 public
+
+
+function ObtenerValorInventario: Double;
+
+
+procedure FiltrarProductosStockBajo(
+  ALista: TObjectList<TProducto>;
+  AStockMaximo: Integer
+);
+
+function ExisteCodigoProducto(const ACodigo: string): Boolean;
 
 procedure RegistrarDiagnostico(
   const AOperacion: string;
@@ -72,7 +86,15 @@ function ActualizarProducto(const AProducto: TProducto): Boolean;
 var
   dmDatos: TdmDatos;
 
+// IMPL //
+// **********************************************
+
+
+
 implementation
+
+
+
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -98,6 +120,113 @@ begin
   qryProductos.ExecSQL;
 end;
 // END-CREATE //
+
+
+
+
+function TdmDatos.ObtenerValorInventario: Double;
+begin
+  qryValorInventario.Close;
+  qryValorInventario.Open;
+
+  try
+    Result :=
+      qryValorInventario.FieldByName('ValorTotal').AsFloat;
+  finally
+    qryValorInventario.Close;
+  end;
+end;
+
+
+
+
+procedure TdmDatos.FiltrarProductosStockBajo(
+  ALista: TObjectList<TProducto>;
+  AStockMaximo: Integer
+);
+var
+  Producto: TProducto;
+begin
+  // La lista va a representar únicamente
+  // los productos devueltos por este filtro.
+  ALista.Clear;
+
+  qryStockBajo.Close;
+
+  // El valor llega a SQLite mediante un parámetro FireDAC.
+  // No concatenamos el contenido introducido por el usuario.
+  qryStockBajo.ParamByName('StockMaximo').AsInteger :=
+    AStockMaximo;
+
+  qryStockBajo.Open;
+
+  try
+    while not qryStockBajo.Eof do
+    begin
+      // Reutilizamos el mapeo común SQL -> TProducto.
+      Producto := CrearProductoDesdeQuery(qryStockBajo);
+
+      try
+        ALista.Add(Producto);
+
+        // La colección pasa a ser propietaria del objeto.
+        Producto := nil;
+      finally
+        Producto.Free;
+      end;
+
+      qryStockBajo.Next;
+    end;
+
+  finally
+    // La consulta siempre queda cerrada,
+    // incluso si ocurre una excepción.
+    qryStockBajo.Close;
+  end;
+end;
+
+
+
+function TdmDatos.ExisteCodigoProducto(
+  const ACodigo: string
+): Boolean;
+begin
+  // Nos aseguramos de que la consulta no quede abierta
+  // de una ejecución anterior.
+  qryExisteCodigo.Close;
+
+  // Enviamos el código como parámetro FireDAC.
+  // Así evitamos concatenar directamente el texto del usuario
+  // dentro de la sentencia SQL.
+  qryExisteCodigo.ParamByName('Codigo').AsString :=
+    Trim(ACodigo);
+
+  // Ejecutamos la consulta:
+  //
+  // SELECT COUNT(*) AS Total
+  // FROM PRODUCTOS
+  // WHERE Codigo = :Codigo;
+  //
+  // SQLite devolverá cuántos productos existen
+  // con ese código.
+  qryExisteCodigo.Open;
+
+  try
+    // Si el contador es mayor que 0,
+    // significa que ya existe al menos un producto
+    // con ese código en la base de datos.
+    Result :=
+      qryExisteCodigo.FieldByName('Total').AsInteger > 0;
+
+  finally
+    // Cerramos siempre la consulta,
+    // incluso si ocurre algún error durante la lectura.
+    qryExisteCodigo.Close;
+  end;
+end;
+
+
+
 
 
 
