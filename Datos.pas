@@ -26,6 +26,11 @@ type
     qryExisteCodigo: TFDQuery;
     qryStockBajo: TFDQuery;
     qryValorInventario: TFDQuery;
+    qryOrdenarProductos: TFDQuery;
+    qryCrearTablaVentas: TFDQuery;
+    qryInsertarVenta: TFDQuery;
+    qryDescontarStock: TFDQuery;
+    qryListarVentas: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -44,6 +49,15 @@ type
 
 public
 
+function ObtenerUltimaVentaResumen: string;
+
+function RegistrarVenta(
+  const AProducto: TProducto;
+  ACantidad: Integer
+): Boolean;
+
+
+procedure OrdenarProductosPorNombre(Alista: TObjectList<Tproducto>; AAscendente: Boolean);
 
 function ObtenerValorInventario: Double;
 
@@ -118,9 +132,204 @@ begin
     FDConnection1.Connected := True;
 
   qryProductos.ExecSQL;
+
+  qryCrearTablaVentas.ExecSQL;
 end;
 // END-CREATE //
 
+
+
+
+
+function TdmDatos.ObtenerUltimaVentaResumen: string;
+begin
+  qryListarVentas.Close;
+  qryListarVentas.Open;
+
+  try
+    if qryListarVentas.Eof then
+    begin
+      Result := 'No hay ventas registradas.';
+      Exit;
+    end;
+
+    // qryListarVentas está ordenada por Id DESC,
+    // por lo que la primera fila corresponde
+    // a la venta más reciente.
+    Result :=
+      'Id: ' +
+      qryListarVentas.FieldByName('Id').AsString +
+      ' | Producto: ' +
+      qryListarVentas.FieldByName('CodigoProducto').AsString +
+      ' | Cantidad: ' +
+      qryListarVentas.FieldByName('Cantidad').AsString +
+      ' | Total: ' +
+      FormatFloat(
+        '0.00',
+        qryListarVentas.FieldByName('Total').AsFloat
+      ) +
+      ' €';
+
+  finally
+    qryListarVentas.Close;
+  end;
+end;
+
+
+
+
+
+
+
+
+
+function TdmDatos.RegistrarVenta(
+  const AProducto: TProducto;
+  ACantidad: Integer
+): Boolean;
+var
+  Total: Double;
+begin
+  FUltimoError := '';
+  Result := False;
+
+  Total := AProducto.Precio * ACantidad;
+
+  try
+    // La venta y la reducción de stock forman
+    // una única operación lógica.
+    FDConnection1.StartTransaction;
+
+    // --------------------------------------------------
+    // 1. Registramos la venta.
+    // --------------------------------------------------
+    qryInsertarVenta.ParamByName('Fecha').AsString :=
+      FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
+
+    qryInsertarVenta.ParamByName('CodigoProducto').AsString :=
+      AProducto.Codigo;
+
+    qryInsertarVenta.ParamByName('Cantidad').AsInteger :=
+      ACantidad;
+
+    qryInsertarVenta.ParamByName('PrecioUnitario').AsFloat :=
+      AProducto.Precio;
+
+    qryInsertarVenta.ParamByName('Total').AsFloat :=
+      Total;
+
+    qryInsertarVenta.ExecSQL;
+
+    if qryInsertarVenta.RowsAffected <= 0 then
+    begin
+      FDConnection1.Rollback;
+
+      FUltimoError :=
+        'No se ha podido registrar la venta.';
+
+      Exit;
+    end;
+
+    // --------------------------------------------------
+    // 2. Descontamos el stock.
+    //
+    // SQLite vuelve a comprobar que exista suficiente
+    // stock en el momento exacto de realizar la operación.
+    // --------------------------------------------------
+    qryDescontarStock.ParamByName('Cantidad').AsInteger :=
+      ACantidad;
+
+    qryDescontarStock.ParamByName('CodigoProducto').AsString :=
+      AProducto.Codigo;
+
+    qryDescontarStock.ExecSQL;
+
+    if qryDescontarStock.RowsAffected <= 0 then
+    begin
+      // La venta ya se había insertado, pero al formar
+      // parte de la misma transacción también se deshace.
+      FDConnection1.Rollback;
+
+      FUltimoError :=
+        'No hay stock suficiente para realizar la venta.';
+
+      Exit;
+    end;
+
+    // Ambas operaciones han terminado correctamente.
+    FDConnection1.Commit;
+    Result := True;
+
+  except
+    on E: Exception do
+    begin
+      if FDConnection1.InTransaction then
+        FDConnection1.Rollback;
+
+      RegistrarError(
+        'REGISTRAR VENTA',
+        'Codigo=' + AProducto.Codigo +
+        ' | Cantidad=' + IntToStr(ACantidad) +
+        ' | ' + E.Message
+      );
+
+      FUltimoError :=
+        'No se ha podido completar la venta.';
+
+      Result := False;
+    end;
+  end;
+end;
+
+
+
+
+
+
+procedure TdmDatos.OrdenarProductosPorNombre(
+  ALista: TObjectList<TProducto>;
+  AAscendente: Boolean
+);
+var
+  Producto: TProducto;
+begin
+  ALista.Clear;
+  qryOrdenarProductos.Close;
+
+  // No concatenamos texto introducido por el usuario.
+  // Elegimos entre dos sentencias SQL fijas y conocidas.
+  if AAscendente then
+    qryOrdenarProductos.SQL.Text :=
+      'SELECT Codigo, Nombre, Precio, Stock ' +
+      'FROM PRODUCTOS ' +
+      'ORDER BY Nombre ASC'
+  else
+    qryOrdenarProductos.SQL.Text :=
+      'SELECT Codigo, Nombre, Precio, Stock ' +
+      'FROM PRODUCTOS ' +
+      'ORDER BY Nombre DESC';
+
+  qryOrdenarProductos.Open;
+
+  try
+    while not qryOrdenarProductos.Eof do
+    begin
+      // Reutilizamos el mapeo común SQL -> TProducto.
+      Producto := CrearProductoDesdeQuery(qryOrdenarProductos);
+
+      try
+        ALista.Add(Producto);
+        Producto := nil;
+      finally
+        Producto.Free;
+      end;
+
+      qryOrdenarProductos.Next;
+    end;
+  finally
+    qryOrdenarProductos.Close;
+  end;
+end;
 
 
 
