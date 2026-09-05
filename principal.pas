@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Ventas;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Ventas,HistorialVentas;
 
 type
   Tfrmprincipal = class(TForm)
@@ -18,8 +18,10 @@ type
     Informes1: TMenuItem;
     Informes2: TMenuItem;
     Acercade1: TMenuItem;
+    mnuHistorialVentas: TMenuItem;
     procedure Gestin2Click(Sender: TObject);
     procedure Clientes2Click(Sender: TObject);
+    procedure mnuHistorialVentasClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -43,6 +45,13 @@ end;
 procedure Tfrmprincipal.Gestin2Click(Sender: TObject);
 begin
 frmproductos.show;
+end;
+
+procedure Tfrmprincipal.mnuHistorialVentasClick(Sender: TObject);
+begin
+
+frmHistorialVentas.ShowModal;
+
 end;
 
 end.

@@ -6,7 +6,9 @@ uses
   productos in 'productos.pas' {frmproductos},
   uproducto in 'uproducto.pas',
   Datos in 'Datos.pas' {dmDatos: TDataModule},
-  Ventas in 'Ventas.pas' {frmVentas};
+  Ventas in 'Ventas.pas' {frmVentas},
+  HistorialVentas in 'HistorialVentas.pas' {frmHistorialVentas},
+  uVenta in 'uVenta.pas';
 
 {$R *.res}
 
@@ -17,5 +19,6 @@ begin
   Application.CreateForm(Tfrmprincipal, frmprincipal);
   Application.CreateForm(Tfrmproductos, frmproductos);
   Application.CreateForm(TfrmVentas, frmVentas);
+  Application.CreateForm(TfrmHistorialVentas, frmHistorialVentas);
   Application.Run;
 end.

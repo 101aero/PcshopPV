@@ -34,6 +34,10 @@ object frmprincipal: Tfrmprincipal
         Caption = 'Ventas'
         OnClick = Clientes2Click
       end
+      object mnuHistorialVentas: TMenuItem
+        Caption = 'HistorialVentas'
+        OnClick = mnuHistorialVentasClick
+      end
     end
     object Informes1: TMenuItem
       Caption = 'Informes'

@@ -10,7 +10,7 @@ uses
   FireDAC.Phys.PGDef, FireDAC.Phys.PG, Data.DB, FireDAC.Comp.Client,
   FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Stan.Param, FireDAC.DatS,
-  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet;
+  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta;
 
 type
   TdmDatos = class(TDataModule)
@@ -31,6 +31,8 @@ type
     qryInsertarVenta: TFDQuery;
     qryDescontarStock: TFDQuery;
     qryListarVentas: TFDQuery;
+    qryResumenVentas: TFDQuery;
+    qryBuscarVentas: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -48,6 +50,26 @@ type
 
 
 public
+
+
+procedure BuscarVentas(
+  ALista: TObjectList<TVenta>;
+  const ABusqueda: string
+);
+
+
+
+procedure ObtenerResumenVentas(
+  out ATotalVentas: Integer;
+  out AUnidadesVendidas: Integer;
+  out AImporteTotal: Double
+);
+
+
+
+procedure CargarVentas(
+  ALista: TObjectList<TVenta>
+);
 
 function ObtenerUltimaVentaResumen: string;
 
@@ -141,6 +163,177 @@ end;
 
 
 
+
+
+procedure TdmDatos.BuscarVentas(
+  ALista: TObjectList<TVenta>;
+  const ABusqueda: string
+);
+var
+  Venta: TVenta;
+begin
+  // La colección mostrará únicamente las ventas
+  // devueltas por esta búsqueda.
+  ALista.Clear;
+
+  qryBuscarVentas.Close;
+
+  // Código exacto.
+  qryBuscarVentas.ParamByName('Codigo').AsString :=
+    Trim(ABusqueda);
+
+  // Nombre parcial.
+  qryBuscarVentas.ParamByName('Nombre').AsString :=
+    '%' + Trim(ABusqueda) + '%';
+
+  qryBuscarVentas.Open;
+
+  try
+    while not qryBuscarVentas.Eof do
+    begin
+      Venta := TVenta.Create;
+
+      try
+        Venta.IdVenta :=
+          qryBuscarVentas.FieldByName('IdVenta').AsInteger;
+
+        Venta.Fecha :=
+          qryBuscarVentas.FieldByName('Fecha').AsString;
+
+        Venta.CodigoProducto :=
+          qryBuscarVentas.FieldByName('CodigoProducto').AsString;
+
+        Venta.Producto :=
+          qryBuscarVentas.FieldByName('Producto').AsString;
+
+        Venta.Cantidad :=
+          qryBuscarVentas.FieldByName('Cantidad').AsInteger;
+
+        Venta.PrecioUnitario :=
+          qryBuscarVentas.FieldByName('PrecioUnitario').AsFloat;
+
+        Venta.Total :=
+          qryBuscarVentas.FieldByName('Total').AsFloat;
+
+        ALista.Add(Venta);
+        Venta := nil;
+
+      finally
+        Venta.Free;
+      end;
+
+      qryBuscarVentas.Next;
+    end;
+
+  finally
+    qryBuscarVentas.Close;
+  end;
+end;
+
+
+
+
+
+procedure TdmDatos.ObtenerResumenVentas(
+  out ATotalVentas: Integer;
+  out AUnidadesVendidas: Integer;
+  out AImporteTotal: Double
+);
+begin
+  qryResumenVentas.Close;
+  qryResumenVentas.Open;
+
+  try
+    // Recuperamos en una sola consulta SQL
+    // las tres métricas principales del historial.
+    ATotalVentas :=
+      qryResumenVentas.FieldByName('TotalVentas').AsInteger;
+
+    AUnidadesVendidas :=
+      qryResumenVentas.FieldByName('UnidadesVendidas').AsInteger;
+
+    AImporteTotal :=
+      qryResumenVentas.FieldByName('ImporteTotal').AsFloat;
+
+  finally
+    // La consulta queda siempre cerrada,
+    // incluso si ocurre un error durante la lectura.
+    qryResumenVentas.Close;
+  end;
+end;
+
+
+
+
+
+procedure TdmDatos.CargarVentas(
+  ALista: TObjectList<TVenta>
+);
+var
+  Venta: TVenta;
+begin
+  // La colección representará exactamente
+  // el historial devuelto actualmente por SQLite.
+  ALista.Clear;
+
+  qryListarVentas.Close;
+  qryListarVentas.Open;
+
+  try
+    while not qryListarVentas.Eof do
+    begin
+      Venta := TVenta.Create;
+
+      try
+        // Convertimos cada fila SQL en un objeto TVenta.
+        Venta.IdVenta :=
+          qryListarVentas.FieldByName('IdVenta').AsInteger;
+
+        Venta.Fecha :=
+          qryListarVentas.FieldByName('Fecha').AsString;
+
+        Venta.CodigoProducto :=
+          qryListarVentas.FieldByName('CodigoProducto').AsString;
+
+        Venta.Producto :=
+          qryListarVentas.FieldByName('Producto').AsString;
+
+        Venta.Cantidad :=
+          qryListarVentas.FieldByName('Cantidad').AsInteger;
+
+        Venta.PrecioUnitario :=
+          qryListarVentas.FieldByName('PrecioUnitario').AsFloat;
+
+        Venta.Total :=
+          qryListarVentas.FieldByName('Total').AsFloat;
+
+        // La colección pasa a ser propietaria del objeto.
+        ALista.Add(Venta);
+        Venta := nil;
+
+      finally
+        Venta.Free;
+      end;
+
+      qryListarVentas.Next;
+    end;
+
+  finally
+    // La consulta siempre queda cerrada,
+    // incluso si ocurre algún error durante la carga.
+    qryListarVentas.Close;
+  end;
+end;
+
+
+
+
+
+
+
+
+
+
 function TdmDatos.ObtenerUltimaVentaResumen: string;
 begin
   qryListarVentas.Close;
@@ -158,7 +351,7 @@ begin
     // a la venta más reciente.
     Result :=
       'Id: ' +
-      qryListarVentas.FieldByName('Id').AsString +
+      qryListarVentas.FieldByName('IdVenta').AsString +
       ' | Producto: ' +
       qryListarVentas.FieldByName('CodigoProducto').AsString +
       ' | Cantidad: ' +

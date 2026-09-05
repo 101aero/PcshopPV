@@ -143,6 +143,11 @@
             <Form>frmVentas</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="HistorialVentas.pas">
+            <Form>frmHistorialVentas</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="uVenta.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

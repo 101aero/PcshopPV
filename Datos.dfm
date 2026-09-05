@@ -241,12 +241,59 @@ object dmDatos: TdmDatos
   object qryListarVentas: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
-      
-        'SELECT Id, Fecha, CodigoProducto, Cantidad, PrecioUnitario, Tota' +
-        'l'
-      'FROM VENTAS'
-      'ORDER BY Id DESC;')
+      'SELECT'
+      '    v.Id AS IdVenta,'
+      '    v.Fecha,'
+      '    v.CodigoProducto,'
+      '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
+      '    v.Cantidad,'
+      '    v.PrecioUnitario,'
+      '    v.Total'
+      'FROM VENTAS v'
+      'LEFT JOIN PRODUCTOS p'
+      '    ON p.Codigo = v.CodigoProducto'
+      'ORDER BY v.Id DESC;')
     Left = 848
     Top = 616
+  end
+  object qryResumenVentas: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT'
+      '    COUNT(*) AS TotalVentas,'
+      '    COALESCE(SUM(Cantidad), 0) AS UnidadesVendidas,'
+      '    COALESCE(SUM(Total), 0) AS ImporteTotal'
+      'FROM VENTAS;')
+    Left = 696
+    Top = 584
+  end
+  object qryBuscarVentas: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT'
+      '    v.Id AS IdVenta,'
+      '    v.Fecha,'
+      '    v.CodigoProducto,'
+      '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
+      '    v.Cantidad,'
+      '    v.PrecioUnitario,'
+      '    v.Total'
+      'FROM VENTAS v'
+      'LEFT JOIN PRODUCTOS p'
+      '    ON p.Codigo = v.CodigoProducto'
+      'WHERE v.CodigoProducto = :Codigo'
+      '   OR p.Nombre LIKE :Nombre'
+      'ORDER BY v.Id DESC;')
+    Left = 520
+    Top = 616
+    ParamData = <
+      item
+        Name = 'CODIGO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'NOMBRE'
+        ParamType = ptInput
+      end>
   end
 end
