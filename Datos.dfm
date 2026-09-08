@@ -296,4 +296,115 @@ object dmDatos: TdmDatos
         ParamType = ptInput
       end>
   end
+
+  object qryCrearTablaClientes: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'CREATE TABLE IF NOT EXISTS CLIENTES ('
+      '  IdCliente INTEGER PRIMARY KEY AUTOINCREMENT,'
+      '  Nombre TEXT NOT NULL,'
+      '  Email TEXT,'
+      '  Telefono TEXT'
+      ');')
+    Left = 72
+    Top = 744
+  end
+  object qryInsertarCliente: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'INSERT INTO CLIENTES'
+      '  (Nombre, Email, Telefono)'
+      'VALUES'
+      '  (:Nombre, :Email, :Telefono);')
+    Left = 240
+    Top = 744
+    ParamData = <
+      item
+        Name = 'NOMBRE'
+        ParamType = ptInput
+      end
+      item
+        Name = 'EMAIL'
+        ParamType = ptInput
+      end
+      item
+        Name = 'TELEFONO'
+        ParamType = ptInput
+      end>
+  end
+  object qryListarClientes: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT IdCliente, Nombre, Email, Telefono'
+      'FROM CLIENTES'
+      'ORDER BY Nombre, IdCliente;')
+    Left = 408
+    Top = 744
+  end
+  object qryActualizarCliente: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'UPDATE CLIENTES'
+      'SET Nombre = :Nombre,'
+      '    Email = :Email,'
+      '    Telefono = :Telefono'
+      'WHERE IdCliente = :IdCliente;')
+    Left = 560
+    Top = 744
+    ParamData = <
+      item
+        Name = 'NOMBRE'
+        ParamType = ptInput
+      end
+      item
+        Name = 'EMAIL'
+        ParamType = ptInput
+      end
+      item
+        Name = 'TELEFONO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'IDCLIENTE'
+        ParamType = ptInput
+      end>
+  end
+  object qryEliminarCliente: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'DELETE FROM CLIENTES'
+      'WHERE IdCliente = :IdCliente;')
+    Left = 736
+    Top = 744
+    ParamData = <
+      item
+        Name = 'IDCLIENTE'
+        ParamType = ptInput
+      end>
+  end
+  object qryBuscarClientes: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT IdCliente, Nombre, Email, Telefono'
+      'FROM CLIENTES'
+      'WHERE Nombre LIKE :Nombre'
+      '   OR Email LIKE :Email'
+      '   OR Telefono LIKE :Telefono'
+      'ORDER BY Nombre, IdCliente;')
+    Left = 888
+    Top = 744
+    ParamData = <
+      item
+        Name = 'NOMBRE'
+        ParamType = ptInput
+      end
+      item
+        Name = 'EMAIL'
+        ParamType = ptInput
+      end
+      item
+        Name = 'TELEFONO'
+        ParamType = ptInput
+      end>
+  end
 end

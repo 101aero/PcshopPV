@@ -10,7 +10,7 @@ uses
   FireDAC.Phys.PGDef, FireDAC.Phys.PG, Data.DB, FireDAC.Comp.Client,
   FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Stan.Param, FireDAC.DatS,
-  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta;
+  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta, uCliente;
 
 type
   TdmDatos = class(TDataModule)
@@ -33,6 +33,12 @@ type
     qryListarVentas: TFDQuery;
     qryResumenVentas: TFDQuery;
     qryBuscarVentas: TFDQuery;
+    qryCrearTablaClientes: TFDQuery;
+    qryInsertarCliente: TFDQuery;
+    qryListarClientes: TFDQuery;
+    qryActualizarCliente: TFDQuery;
+    qryEliminarCliente: TFDQuery;
+    qryBuscarClientes: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -46,10 +52,29 @@ type
   AQuery: TFDQuery
 ): TProducto;
 
-
+  // Convierte una fila devuelta por FireDAC en el modelo TCliente.
+  // Se reutiliza tanto en la carga completa como en las búsquedas.
+  function CrearClienteDesdeQuery(
+    AQuery: TFDQuery
+  ): TCliente;
 
 
 public
+
+// CLIENTES ---------------------------------------------------------------
+// El formulario trabaja con TCliente y delega todo el SQL en el Data Module.
+function InsertarCliente(const ACliente: TCliente): Boolean;
+function ActualizarCliente(const ACliente: TCliente): Boolean;
+function EliminarCliente(AIdCliente: Integer): Boolean;
+
+procedure CargarClientes(
+  ALista: TObjectList<TCliente>
+);
+
+procedure BuscarClientes(
+  ALista: TObjectList<TCliente>;
+  const ABusqueda: string
+);
 
 
 procedure BuscarVentas(
@@ -154,8 +179,11 @@ begin
     FDConnection1.Connected := True;
 
   qryProductos.ExecSQL;
-
   qryCrearTablaVentas.ExecSQL;
+
+  // CLIENTES se crea automáticamente si todavía no existe.
+  // IdCliente será la clave estable para futuras relaciones con VENTAS.
+  qryCrearTablaClientes.ExecSQL;
 end;
 // END-CREATE //
 
@@ -163,6 +191,228 @@ end;
 
 
 
+
+
+
+// ========================================================================
+// CLIENTES
+// ========================================================================
+
+function TdmDatos.CrearClienteDesdeQuery(
+  AQuery: TFDQuery
+): TCliente;
+begin
+  Result := TCliente.Create;
+  try
+    // Un único punto conoce cómo se transforma una fila SQL en TCliente.
+    Result.IdCliente :=
+      AQuery.FieldByName('IdCliente').AsInteger;
+
+    Result.Nombre :=
+      AQuery.FieldByName('Nombre').AsString;
+
+    Result.Email :=
+      AQuery.FieldByName('Email').AsString;
+
+    Result.Telefono :=
+      AQuery.FieldByName('Telefono').AsString;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+
+function TdmDatos.InsertarCliente(
+  const ACliente: TCliente
+): Boolean;
+begin
+  FUltimoError := '';
+  Result := False;
+
+  try
+    qryInsertarCliente.ParamByName('Nombre').AsString :=
+      ACliente.Nombre;
+
+    qryInsertarCliente.ParamByName('Email').AsString :=
+      ACliente.Email;
+
+    qryInsertarCliente.ParamByName('Telefono').AsString :=
+      ACliente.Telefono;
+
+    qryInsertarCliente.ExecSQL;
+
+    // No consideramos éxito solo porque ExecSQL no lance excepción.
+    Result := qryInsertarCliente.RowsAffected > 0;
+
+    if not Result then
+      FUltimoError := 'No se ha podido registrar el cliente.';
+
+  except
+    on E: Exception do
+    begin
+      RegistrarError(
+        'INSERT CLIENTE',
+        'Nombre=' + ACliente.Nombre + ' | ' + E.Message
+      );
+
+      FUltimoError := 'No se ha podido registrar el cliente.';
+      Result := False;
+    end;
+  end;
+end;
+
+
+function TdmDatos.ActualizarCliente(
+  const ACliente: TCliente
+): Boolean;
+begin
+  FUltimoError := '';
+  Result := False;
+
+  try
+    qryActualizarCliente.ParamByName('Nombre').AsString :=
+      ACliente.Nombre;
+
+    qryActualizarCliente.ParamByName('Email').AsString :=
+      ACliente.Email;
+
+    qryActualizarCliente.ParamByName('Telefono').AsString :=
+      ACliente.Telefono;
+
+    qryActualizarCliente.ParamByName('IdCliente').AsInteger :=
+      ACliente.IdCliente;
+
+    qryActualizarCliente.ExecSQL;
+
+    Result := qryActualizarCliente.RowsAffected > 0;
+
+    if not Result then
+      FUltimoError :=
+        'No se ha encontrado el cliente que se quería actualizar.';
+
+  except
+    on E: Exception do
+    begin
+      RegistrarError(
+        'UPDATE CLIENTE',
+        'IdCliente=' + IntToStr(ACliente.IdCliente) +
+        ' | ' + E.Message
+      );
+
+      FUltimoError := 'No se ha podido actualizar el cliente.';
+      Result := False;
+    end;
+  end;
+end;
+
+
+function TdmDatos.EliminarCliente(
+  AIdCliente: Integer
+): Boolean;
+begin
+  FUltimoError := '';
+  Result := False;
+
+  try
+    qryEliminarCliente.ParamByName('IdCliente').AsInteger :=
+      AIdCliente;
+
+    qryEliminarCliente.ExecSQL;
+
+    Result := qryEliminarCliente.RowsAffected > 0;
+
+    if not Result then
+      FUltimoError :=
+        'No se ha encontrado el cliente que se quería eliminar.';
+
+  except
+    on E: Exception do
+    begin
+      RegistrarError(
+        'DELETE CLIENTE',
+        'IdCliente=' + IntToStr(AIdCliente) +
+        ' | ' + E.Message
+      );
+
+      FUltimoError := 'No se ha podido eliminar el cliente.';
+      Result := False;
+    end;
+  end;
+end;
+
+
+procedure TdmDatos.CargarClientes(
+  ALista: TObjectList<TCliente>
+);
+var
+  Cliente: TCliente;
+begin
+  ALista.Clear;
+
+  qryListarClientes.Close;
+  qryListarClientes.Open;
+
+  try
+    while not qryListarClientes.Eof do
+    begin
+      Cliente := CrearClienteDesdeQuery(qryListarClientes);
+
+      try
+        ALista.Add(Cliente);
+        Cliente := nil;
+      finally
+        Cliente.Free;
+      end;
+
+      qryListarClientes.Next;
+    end;
+  finally
+    qryListarClientes.Close;
+  end;
+end;
+
+
+procedure TdmDatos.BuscarClientes(
+  ALista: TObjectList<TCliente>;
+  const ABusqueda: string
+);
+var
+  Cliente: TCliente;
+  Patron: string;
+begin
+  ALista.Clear;
+
+  qryBuscarClientes.Close;
+
+  // La misma entrada se aplica a Nombre, Email y Teléfono
+  // mediante parámetros FireDAC; el formulario no contiene SQL.
+  Patron := '%' + Trim(ABusqueda) + '%';
+
+  qryBuscarClientes.ParamByName('Nombre').AsString := Patron;
+  qryBuscarClientes.ParamByName('Email').AsString := Patron;
+  qryBuscarClientes.ParamByName('Telefono').AsString := Patron;
+
+  qryBuscarClientes.Open;
+
+  try
+    while not qryBuscarClientes.Eof do
+    begin
+      Cliente := CrearClienteDesdeQuery(qryBuscarClientes);
+
+      try
+        ALista.Add(Cliente);
+        Cliente := nil;
+      finally
+        Cliente.Free;
+      end;
+
+      qryBuscarClientes.Next;
+    end;
+  finally
+    qryBuscarClientes.Close;
+  end;
+end;
 
 
 procedure TdmDatos.BuscarVentas(

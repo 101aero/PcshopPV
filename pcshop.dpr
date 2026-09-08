@@ -8,7 +8,9 @@ uses
   Datos in 'Datos.pas' {dmDatos: TDataModule},
   Ventas in 'Ventas.pas' {frmVentas},
   HistorialVentas in 'HistorialVentas.pas' {frmHistorialVentas},
-  uVenta in 'uVenta.pas';
+  uVenta in 'uVenta.pas',
+  uCliente in 'uCliente.pas',
+  Clientes in 'Clientes.pas' {frmClientes};
 
 {$R *.res}
 

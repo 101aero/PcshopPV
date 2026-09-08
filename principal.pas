@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Ventas,HistorialVentas;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Ventas, HistorialVentas, Clientes;
 
 type
   Tfrmprincipal = class(TForm)
@@ -20,6 +20,7 @@ type
     Acercade1: TMenuItem;
     mnuHistorialVentas: TMenuItem;
     procedure Gestin2Click(Sender: TObject);
+    procedure Clientes1Click(Sender: TObject);
     procedure Clientes2Click(Sender: TObject);
     procedure mnuHistorialVentasClick(Sender: TObject);
   private
@@ -36,6 +37,20 @@ implementation
 {$R *.dfm}
 
 uses productos;
+
+procedure Tfrmprincipal.Clientes1Click(Sender: TObject);
+var
+  FormClientes: TfrmClientes;
+begin
+  // Clientes se crea al abrirlo y se libera al cerrar.
+  // Así no añadimos otro formulario al arranque de PC Shop.
+  FormClientes := TfrmClientes.Create(Self);
+  try
+    FormClientes.ShowModal;
+  finally
+    FormClientes.Free;
+  end;
+end;
 
 procedure Tfrmprincipal.Clientes2Click(Sender: TObject);
 begin

@@ -1,0 +1,34 @@
+﻿PC SHOP PV — CLIENTES
+
+Se ha añadido un módulo funcional de CLIENTES sin modificar todavía VENTAS.
+
+Incluye:
+- Tabla SQLite CLIENTES.
+- TCliente.
+- Alta.
+- Listado persistente.
+- Edición.
+- Eliminación.
+- Búsqueda por Nombre / Email / Teléfono.
+- RowsAffected + UltimoError + log técnico.
+- Acceso desde Gestión > Clientes.
+- SQL centralizado en el Data Module.
+- CrearClienteDesdeQuery para reutilizar el mapeo SQL -> TCliente.
+
+Decisión de diseño:
+- IdCliente = INTEGER PRIMARY KEY AUTOINCREMENT.
+- Nombre NO es clave ni UNIQUE.
+- No se añade todavía IdCliente a VENTAS.
+
+Prueba mínima:
+1. Compilar.
+2. Abrir Gestión > Clientes.
+3. Crear un cliente.
+4. Cerrar y volver a abrir Clientes: debe persistir.
+5. Buscar por parte del nombre/email/teléfono.
+6. Editar.
+7. Eliminar.
+
+Nota de arranque:
+Clientes no se auto-crea en pcshop.dpr. El formulario se crea al abrir el menú
+y se libera al cerrarlo, para no añadir más trabajo innecesario al arranque.

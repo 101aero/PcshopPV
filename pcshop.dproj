@@ -148,6 +148,11 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="uVenta.pas"/>
+        <DCCReference Include="uCliente.pas"/>
+        <DCCReference Include="Clientes.pas">
+            <Form>frmClientes</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
