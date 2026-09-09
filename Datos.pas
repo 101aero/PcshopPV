@@ -39,10 +39,16 @@ type
     qryActualizarCliente: TFDQuery;
     qryEliminarCliente: TFDQuery;
     qryBuscarClientes: TFDQuery;
+    qryEstructuraVentas: TFDQuery;
+    qryAgregarIdClienteVentas: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
   FUltimoError: string;
+
+  // Comprueba la estructura real de VENTAS y aplica únicamente
+  // la evolución necesaria para conservar los datos existentes.
+  procedure MigrarEsquemaVentas;
 
   procedure RegistrarError(
   const AOperacion: string;
@@ -100,7 +106,8 @@ function ObtenerUltimaVentaResumen: string;
 
 function RegistrarVenta(
   const AProducto: TProducto;
-  ACantidad: Integer
+  ACantidad: Integer;
+  AIdCliente: Integer = 0
 ): Boolean;
 
 
@@ -181,6 +188,10 @@ begin
   qryProductos.ExecSQL;
   qryCrearTablaVentas.ExecSQL;
 
+  // CREATE TABLE IF NOT EXISTS no modifica una tabla ya creada.
+  // Por eso comprobamos y migramos el esquema de VENTAS aparte.
+  MigrarEsquemaVentas;
+
   // CLIENTES se crea automáticamente si todavía no existe.
   // IdCliente será la clave estable para futuras relaciones con VENTAS.
   qryCrearTablaClientes.ExecSQL;
@@ -192,6 +203,49 @@ end;
 
 
 
+
+
+// ========================================================================
+// MIGRACIÓN DE ESQUEMA: VENTAS
+// ========================================================================
+
+procedure TdmDatos.MigrarEsquemaVentas;
+var
+  TieneIdCliente: Boolean;
+begin
+  TieneIdCliente := False;
+
+  // PRAGMA table_info devuelve la estructura real de la tabla existente.
+  // Esto permite distinguir una base antigua de una ya migrada.
+  qryEstructuraVentas.Close;
+  qryEstructuraVentas.Open;
+
+  try
+    while not qryEstructuraVentas.Eof do
+    begin
+      if SameText(
+        qryEstructuraVentas.FieldByName('name').AsString,
+        'IdCliente'
+      ) then
+      begin
+        TieneIdCliente := True;
+        Break;
+      end;
+
+      qryEstructuraVentas.Next;
+    end;
+  finally
+    qryEstructuraVentas.Close;
+  end;
+
+  if not TieneIdCliente then
+  begin
+    // En SQLite una columna sin NOT NULL admite NULL por defecto.
+    // Las ventas anteriores conservarán todos sus datos y recibirán
+    // NULL en IdCliente automáticamente.
+    qryAgregarIdClienteVentas.ExecSQL;
+  end;
+end;
 
 
 // ========================================================================
@@ -447,6 +501,14 @@ begin
         Venta.IdVenta :=
           qryBuscarVentas.FieldByName('IdVenta').AsInteger;
 
+        // En SQLite una venta antigua o anónima guarda NULL.
+        // En el modelo Delphi representamos ese caso con IdCliente = 0.
+        if qryBuscarVentas.FieldByName('IdCliente').IsNull then
+          Venta.IdCliente := 0
+        else
+          Venta.IdCliente :=
+            qryBuscarVentas.FieldByName('IdCliente').AsInteger;
+
         Venta.Fecha :=
           qryBuscarVentas.FieldByName('Fecha').AsString;
 
@@ -539,6 +601,14 @@ begin
         Venta.IdVenta :=
           qryListarVentas.FieldByName('IdVenta').AsInteger;
 
+        // NULL conserva la compatibilidad con ventas antiguas
+        // y con ventas realizadas sin cliente asociado.
+        if qryListarVentas.FieldByName('IdCliente').IsNull then
+          Venta.IdCliente := 0
+        else
+          Venta.IdCliente :=
+            qryListarVentas.FieldByName('IdCliente').AsInteger;
+
         Venta.Fecha :=
           qryListarVentas.FieldByName('Fecha').AsString;
 
@@ -628,7 +698,8 @@ end;
 
 function TdmDatos.RegistrarVenta(
   const AProducto: TProducto;
-  ACantidad: Integer
+  ACantidad: Integer;
+  AIdCliente: Integer
 ): Boolean;
 var
   Total: Double;
@@ -648,6 +719,17 @@ begin
     // --------------------------------------------------
     qryInsertarVenta.ParamByName('Fecha').AsString :=
       FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
+
+    // En Delphi usamos 0 para representar "sin cliente",
+    // pero en SQLite guardamos un NULL real. De este modo
+    // las ventas anónimas y las ventas antiguas siguen siendo válidas.
+    qryInsertarVenta.ParamByName('IdCliente').DataType := ftInteger;
+
+    if AIdCliente > 0 then
+      qryInsertarVenta.ParamByName('IdCliente').AsInteger :=
+        AIdCliente
+    else
+      qryInsertarVenta.ParamByName('IdCliente').Clear;
 
     qryInsertarVenta.ParamByName('CodigoProducto').AsString :=
       AProducto.Codigo;

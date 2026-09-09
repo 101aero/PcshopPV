@@ -1,0 +1,9 @@
+PC Shop - SEPTIEMBRE, Semana 1-2 - Paso 3
+
+Cambios:
+- qryListarVentas incluye v.IdCliente.
+- qryBuscarVentas incluye v.IdCliente.
+- CargarVentas convierte SQLite NULL a TVenta.IdCliente = 0.
+- BuscarVentas convierte SQLite NULL a TVenta.IdCliente = 0.
+
+No se modifica todavía RegistrarVenta ni la interfaz de Ventas.

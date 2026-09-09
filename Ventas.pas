@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,System.Generics.Collections,
-uProducto, Datos;
+uProducto, uCliente, Datos;
 
 type
   TfrmVentas = class(TForm)
@@ -18,6 +18,8 @@ type
     lblPrecioVenta: TLabel;
     lblTotalVenta: TLabel;
     btnRegistrarVenta: TButton;
+    lblCliente: TLabel;
+    cboCliente: TComboBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -30,6 +32,11 @@ type
   // Mantiene los productos cargados desde SQLite.
   // El índice coincidirá después con el ItemIndex del ComboBox.
   FProductosVenta: TObjectList<TProducto>;
+
+  // Colección de clientes disponible para asociar la venta.
+  // El primer elemento del ComboBox se reserva para la venta anónima,
+  // por eso un cliente real se obtiene con ItemIndex - 1.
+  FClientesVenta: TObjectList<TCliente>;
 
 
 
@@ -48,6 +55,7 @@ procedure TfrmVentas.btnRegistrarVentaClick(Sender: TObject);
 var
   Cantidad: Integer;
   Producto: TProducto;
+  IdCliente: Integer;
 begin
   // Debe existir un producto seleccionado.
   if cboProducto.ItemIndex < 0 then
@@ -93,11 +101,20 @@ begin
     Exit;
   end;
 
+  // El primer elemento del ComboBox representa una venta anónima.
+  // Los clientes reales empiezan en el índice 1.
+  if cboCliente.ItemIndex <= 0 then
+    IdCliente := 0
+  else
+    IdCliente := FClientesVenta[cboCliente.ItemIndex - 1].IdCliente;
+
   // El formulario no ejecuta SQL.
-  // La venta completa se delega al Data Module.
+  // La venta completa, incluida la asociación opcional al cliente,
+  // se delega al Data Module.
   if not dmDatos.RegistrarVenta(
     Producto,
-    Cantidad
+    Cantidad,
+    IdCliente
   ) then
   begin
     ShowMessage(dmDatos.UltimoError);
@@ -216,11 +233,16 @@ begin
   // que carguemos desde SQLite.
   FProductosVenta := TObjectList<TProducto>.Create(True);
 
+  // La lista de clientes también se reconstruye desde SQLite
+  // cada vez que se abre el formulario.
+  FClientesVenta := TObjectList<TCliente>.Create(True);
+
 end;
 
 procedure TfrmVentas.FormDestroy(Sender: TObject);
 begin
- FProductosVenta.Free;
+  FClientesVenta.Free;
+  FProductosVenta.Free;
 end;
 
 procedure TfrmVentas.FormShow(Sender: TObject);
@@ -250,6 +272,32 @@ begin
 
   finally
     cboProducto.Items.EndUpdate;
+  end;
+
+  // Cargamos los clientes desde la misma capa de datos que utiliza
+  // el módulo de Clientes. No duplicamos SQL en el formulario.
+  dmDatos.CargarClientes(FClientesVenta);
+
+  cboCliente.Items.BeginUpdate;
+  try
+    cboCliente.Items.Clear;
+
+    // Esta opción representa IdCliente = NULL en SQLite.
+    cboCliente.Items.Add('Venta anónima / sin cliente');
+
+    for I := 0 to FClientesVenta.Count - 1 do
+      // Mostramos también el Id porque el nombre no es una clave
+      // y puede repetirse entre distintos clientes.
+      cboCliente.Items.Add(
+        IntToStr(FClientesVenta[I].IdCliente) + ' - ' +
+        FClientesVenta[I].Nombre
+      );
+
+    // Por compatibilidad, una venta sigue siendo anónima
+    // si el usuario no selecciona expresamente un cliente.
+    cboCliente.ItemIndex := 0;
+  finally
+    cboCliente.Items.EndUpdate;
   end;
 end;
 

@@ -6,6 +6,7 @@ type
   TVenta = class
   private
     FIdVenta: Integer;
+    FIdCliente: Integer;
     FFecha: string;
     FCodigoProducto: string;
     FProducto: string;
@@ -15,6 +16,12 @@ type
   public
     property IdVenta: Integer
       read FIdVenta write FIdVenta;
+
+    // En SQLite una venta sin cliente se guarda como NULL.
+    // En el modelo Delphi representaremos ese caso con 0;
+    // los IdCliente reales empiezan en 1 por ser autoincrementales.
+    property IdCliente: Integer
+      read FIdCliente write FIdCliente;
 
     property Fecha: string
       read FFecha write FFecha;

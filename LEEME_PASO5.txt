@@ -1,0 +1,12 @@
+PASO 5 - Selector de cliente en Ventas
+
+Archivos modificados:
+- Ventas.pas
+- Ventas.dfm
+
+Cambios:
+- ComboBox de cliente con opción Venta anónima / sin cliente.
+- Carga de clientes desde dmDatos.CargarClientes.
+- Muestra IdCliente - Nombre para distinguir nombres repetidos.
+- Pasa IdCliente a dmDatos.RegistrarVenta.
+- La opción anónima envía 0 a Delphi; RegistrarVenta lo convierte en NULL en SQLite.

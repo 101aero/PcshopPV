@@ -18,7 +18,7 @@ object frmVentas: TfrmVentas
     Left = 16
     Top = 16
     Width = 470
-    Height = 210
+    Height = 240
     Caption = 'grpVenta'
     TabOrder = 0
     object lblProducto: TLabel
@@ -37,24 +37,31 @@ object frmVentas: TfrmVentas
     end
     object lblStockventa: TLabel
       Left = 20
-      Top = 110
+      Top = 160
       Width = 71
       Height = 15
       Caption = 'lblStockventa'
     end
     object lblPrecioVenta: TLabel
       Left = 128
-      Top = 110
+      Top = 160
       Width = 75
       Height = 15
       Caption = 'lblPrecioVenta'
     end
     object lblTotalVenta: TLabel
       Left = 307
-      Top = 110
+      Top = 160
       Width = 68
       Height = 15
       Caption = 'lblTotalVenta'
+    end
+    object lblCliente: TLabel
+      Left = 32
+      Top = 100
+      Width = 40
+      Height = 15
+      Caption = 'Cliente:'
     end
     object cboProducto: TComboBox
       Left = 32
@@ -64,6 +71,14 @@ object frmVentas: TfrmVentas
       Style = csDropDownList
       TabOrder = 0
       OnChange = cboProductoChange
+    end
+    object cboCliente: TComboBox
+      Left = 32
+      Top = 121
+      Width = 361
+      Height = 23
+      Style = csDropDownList
+      TabOrder = 2
     end
     object edtCantidad: TEdit
       Left = 272
@@ -76,11 +91,11 @@ object frmVentas: TfrmVentas
     end
     object btnRegistrarVenta: TButton
       Left = 20
-      Top = 156
+      Top = 195
       Width = 131
       Height = 25
       Caption = 'btnRegistrarVenta'
-      TabOrder = 2
+      TabOrder = 3
       OnClick = btnRegistrarVentaClick
     end
   end

@@ -183,7 +183,8 @@ object dmDatos: TdmDatos
       '    CodigoProducto TEXT NOT NULL,'
       '    Cantidad INTEGER NOT NULL,'
       '    PrecioUnitario REAL NOT NULL,'
-      '    Total REAL NOT NULL'
+      '    Total REAL NOT NULL,'
+      '    IdCliente INTEGER'
       ');')
     Left = 288
     Top = 432
@@ -192,14 +193,19 @@ object dmDatos: TdmDatos
     Connection = FDConnection1
     SQL.Strings = (
       'INSERT INTO VENTAS'
-      '  (Fecha, CodigoProducto, Cantidad, PrecioUnitario, Total)'
+      '  (Fecha, IdCliente, CodigoProducto, Cantidad, PrecioUnitario, Total)'
       'VALUES'
-      '  (:Fecha, :CodigoProducto, :Cantidad, :PrecioUnitario, :Total);')
+      '  (:Fecha, :IdCliente, :CodigoProducto, :Cantidad, :PrecioUnitario, :Total);')
     Left = 440
     Top = 440
     ParamData = <
       item
         Name = 'FECHA'
+        ParamType = ptInput
+      end
+      item
+        Name = 'IDCLIENTE'
+        DataType = ftInteger
         ParamType = ptInput
       end
       item
@@ -243,6 +249,7 @@ object dmDatos: TdmDatos
     SQL.Strings = (
       'SELECT'
       '    v.Id AS IdVenta,'
+      '    v.IdCliente,'
       '    v.Fecha,'
       '    v.CodigoProducto,'
       '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
@@ -272,6 +279,7 @@ object dmDatos: TdmDatos
     SQL.Strings = (
       'SELECT'
       '    v.Id AS IdVenta,'
+      '    v.IdCliente,'
       '    v.Fecha,'
       '    v.CodigoProducto,'
       '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
@@ -406,5 +414,19 @@ object dmDatos: TdmDatos
         Name = 'TELEFONO'
         ParamType = ptInput
       end>
+  end
+  object qryEstructuraVentas: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'PRAGMA table_info(VENTAS);')
+    Left = 1056
+    Top = 744
+  end
+  object qryAgregarIdClienteVentas: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'ALTER TABLE VENTAS ADD COLUMN IdCliente INTEGER;')
+    Left = 1056
+    Top = 816
   end
 end
