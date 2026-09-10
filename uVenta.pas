@@ -10,6 +10,7 @@ type
     FFecha: string;
     FCodigoProducto: string;
     FProducto: string;
+    FCliente: string;
     FCantidad: Integer;
     FPrecioUnitario: Double;
     FTotal: Double;
@@ -31,6 +32,12 @@ type
 
     property Producto: string
       read FProducto write FProducto;
+
+    // Nombre descriptivo del cliente para presentación en el historial.
+    // No se persiste en VENTAS: se obtendrá de CLIENTES mediante IdCliente.
+    // Para una venta sin cliente se cargará un texto como '(venta anónima)'.
+    property Cliente: string
+      read FCliente write FCliente;
 
     property Cantidad: Integer
       read FCantidad write FCantidad;

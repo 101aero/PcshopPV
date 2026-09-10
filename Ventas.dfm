@@ -52,7 +52,7 @@ object frmVentas: TfrmVentas
     object lblTotalVenta: TLabel
       Left = 307
       Top = 160
-      Width = 68
+      Width = 67
       Height = 15
       Caption = 'lblTotalVenta'
     end

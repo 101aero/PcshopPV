@@ -253,12 +253,15 @@ object dmDatos: TdmDatos
       '    v.Fecha,'
       '    v.CodigoProducto,'
       '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
+      '    COALESCE(c.Nombre, '#39'(venta anónima)'#39') AS Cliente,'
       '    v.Cantidad,'
       '    v.PrecioUnitario,'
       '    v.Total'
       'FROM VENTAS v'
       'LEFT JOIN PRODUCTOS p'
       '    ON p.Codigo = v.CodigoProducto'
+      'LEFT JOIN CLIENTES c'
+      '    ON c.IdCliente = v.IdCliente'
       'ORDER BY v.Id DESC;')
     Left = 848
     Top = 616
@@ -283,12 +286,15 @@ object dmDatos: TdmDatos
       '    v.Fecha,'
       '    v.CodigoProducto,'
       '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
+      '    COALESCE(c.Nombre, '#39'(venta anónima)'#39') AS Cliente,'
       '    v.Cantidad,'
       '    v.PrecioUnitario,'
       '    v.Total'
       'FROM VENTAS v'
       'LEFT JOIN PRODUCTOS p'
       '    ON p.Codigo = v.CodigoProducto'
+      'LEFT JOIN CLIENTES c'
+      '    ON c.IdCliente = v.IdCliente'
       'WHERE v.CodigoProducto = :Codigo'
       '   OR p.Nombre LIKE :Nombre'
       'ORDER BY v.Id DESC;')

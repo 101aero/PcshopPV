@@ -55,16 +55,17 @@ begin
   FVentas := TObjectList<TVenta>.Create(True);
 
   // Preparamos las columnas visibles del historial.
-  grdVentas.ColCount := 6;
+  grdVentas.ColCount := 7;
   grdVentas.RowCount := 2;
   grdVentas.FixedRows := 1;
 
   grdVentas.Cells[0, 0] := 'Fecha';
   grdVentas.Cells[1, 0] := 'Código';
   grdVentas.Cells[2, 0] := 'Producto';
-  grdVentas.Cells[3, 0] := 'Cantidad';
-  grdVentas.Cells[4, 0] := 'Precio';
-  grdVentas.Cells[5, 0] := 'Total';
+  grdVentas.Cells[3, 0] := 'Cliente';
+  grdVentas.Cells[4, 0] := 'Cantidad';
+  grdVentas.Cells[5, 0] := 'Precio';
+  grdVentas.Cells[6, 0] := 'Total';
 end;
 
 
@@ -143,12 +144,13 @@ begin
     grdVentas.Cells[0, I + 1] := Venta.Fecha;
     grdVentas.Cells[1, I + 1] := Venta.CodigoProducto;
     grdVentas.Cells[2, I + 1] := Venta.Producto;
-    grdVentas.Cells[3, I + 1] := IntToStr(Venta.Cantidad);
-
-    grdVentas.Cells[4, I + 1] :=
-      FormatFloat('0.00', Venta.PrecioUnitario);
+    grdVentas.Cells[3, I + 1] := Venta.Cliente;
+    grdVentas.Cells[4, I + 1] := IntToStr(Venta.Cantidad);
 
     grdVentas.Cells[5, I + 1] :=
+      FormatFloat('0.00', Venta.PrecioUnitario);
+
+    grdVentas.Cells[6, I + 1] :=
       FormatFloat('0.00', Venta.Total);
   end;
 

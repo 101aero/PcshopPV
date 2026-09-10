@@ -1,4 +1,4 @@
-object frmHistorialVentas: TfrmHistorialVentas
+﻿object frmHistorialVentas: TfrmHistorialVentas
   Left = 0
   Top = 0
   Caption = 'Historial de ventas'
@@ -86,7 +86,7 @@ object frmHistorialVentas: TfrmHistorialVentas
     Width = 800
     Height = 285
     Anchors = [akLeft, akTop, akRight, akBottom]
-    ColCount = 6
+    ColCount = 7
     DefaultColWidth = 120
     FixedCols = 0
     RowCount = 2

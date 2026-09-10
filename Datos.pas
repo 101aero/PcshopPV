@@ -518,6 +518,11 @@ begin
         Venta.Producto :=
           qryBuscarVentas.FieldByName('Producto').AsString;
 
+        // Cliente es un dato descriptivo obtenido mediante LEFT JOIN.
+        // Si IdCliente es NULL, SQL devuelve '(venta anónima)'.
+        Venta.Cliente :=
+          qryBuscarVentas.FieldByName('Cliente').AsString;
+
         Venta.Cantidad :=
           qryBuscarVentas.FieldByName('Cantidad').AsInteger;
 
@@ -617,6 +622,11 @@ begin
 
         Venta.Producto :=
           qryListarVentas.FieldByName('Producto').AsString;
+
+        // Cliente es un dato descriptivo obtenido mediante LEFT JOIN.
+        // Las ventas antiguas o anónimas reciben el texto de SQL.
+        Venta.Cliente :=
+          qryListarVentas.FieldByName('Cliente').AsString;
 
         Venta.Cantidad :=
           qryListarVentas.FieldByName('Cantidad').AsInteger;
