@@ -99,7 +99,8 @@ procedure ObtenerResumenVentas(
 
 
 procedure CargarVentas(
-  ALista: TObjectList<TVenta>
+  ALista: TObjectList<TVenta>;
+  AIdCliente: Integer = 0
 );
 
 function ObtenerUltimaVentaResumen: string;
@@ -584,7 +585,8 @@ end;
 
 
 procedure TdmDatos.CargarVentas(
-  ALista: TObjectList<TVenta>
+  ALista: TObjectList<TVenta>;
+  AIdCliente: Integer
 );
 var
   Venta: TVenta;
@@ -594,6 +596,10 @@ begin
   ALista.Clear;
 
   qryListarVentas.Close;
+
+  // AIdCliente = 0 significa "Todos los clientes".
+  // Un identificador real limita el historial a ese cliente.
+  qryListarVentas.ParamByName('IdClienteFiltro').AsInteger := AIdCliente;
   qryListarVentas.Open;
 
   try
@@ -667,6 +673,8 @@ end;
 function TdmDatos.ObtenerUltimaVentaResumen: string;
 begin
   qryListarVentas.Close;
+  // El resumen de la ultima venta siempre consulta el historial general.
+  qryListarVentas.ParamByName('IdClienteFiltro').AsInteger := 0;
   qryListarVentas.Open;
 
   try

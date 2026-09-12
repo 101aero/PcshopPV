@@ -12,6 +12,7 @@
   Font.Style = []
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   DesignSize = (
     834
@@ -34,14 +35,14 @@
     Left = 16
     Top = 49
     Width = 800
-    Height = 74
+    Height = 110
     Anchors = [akLeft, akTop, akRight]
     Caption = 'B'#250'squeda'
     TabOrder = 0
     ExplicitWidth = 798
     DesignSize = (
       800
-      74)
+      110)
     object lblBuscar: TLabel
       Left = 16
       Top = 32
@@ -79,12 +80,32 @@
       TabOrder = 2
       ExplicitLeft = 590
     end
+    object lblClienteFiltro: TLabel
+      Left = 16
+      Top = 72
+      Width = 45
+      Height = 17
+      Caption = 'Cliente:'
+    end
+    object cboClienteFiltro: TComboBox
+      Left = 72
+      Top = 67
+      Width = 300
+      Height = 25
+      Style = csDropDownList
+      ItemIndex = 0
+      TabOrder = 3
+      Text = 'Todos los clientes'
+      OnChange = cboClienteFiltroChange
+      Items.Strings = (
+        'Todos los clientes')
+    end
   end
   object grdVentas: TStringGrid
     Left = 16
-    Top = 137
+    Top = 173
     Width = 800
-    Height = 285
+    Height = 249
     Anchors = [akLeft, akTop, akRight, akBottom]
     ColCount = 7
     DefaultColWidth = 120
@@ -93,7 +114,7 @@
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect]
     TabOrder = 1
     ExplicitWidth = 798
-    ExplicitHeight = 277
+    ExplicitHeight = 241
   end
   object grpResumen: TGroupBox
     Left = 16

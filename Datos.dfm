@@ -262,9 +262,15 @@ object dmDatos: TdmDatos
       '    ON p.Codigo = v.CodigoProducto'
       'LEFT JOIN CLIENTES c'
       '    ON c.IdCliente = v.IdCliente'
+      'WHERE (:IdClienteFiltro = 0 OR v.IdCliente = :IdClienteFiltro)'
       'ORDER BY v.Id DESC;')
     Left = 848
     Top = 616
+    ParamData = <
+      item
+        Name = 'IDCLIENTEFILTRO'
+        ParamType = ptInput
+      end>
   end
   object qryResumenVentas: TFDQuery
     Connection = FDConnection1

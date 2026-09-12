@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  Vcl.Grids, Vcl.StdCtrls, System.Generics.Collections,uVenta,Datos;
+  Vcl.Grids, Vcl.StdCtrls, System.Generics.Collections, uVenta, uCliente, Datos;
 
 type
   TfrmHistorialVentas = class(TForm)
@@ -15,6 +15,8 @@ type
     edtBuscarVenta: TEdit;
     btnBuscarVenta: TButton;
     btnMostrarVentas: TButton;
+    lblClienteFiltro: TLabel;
+    cboClienteFiltro: TComboBox;
     grdVentas: TStringGrid;
     grpResumen: TGroupBox;
     lblTotalVentas: TLabel;
@@ -22,8 +24,10 @@ type
     lblImporteVentas: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure btnBuscarVentaClick(Sender: TObject);
     procedure btnMostrarVentasClick(Sender: TObject);
+    procedure cboClienteFiltroChange(Sender: TObject);
 
 
   private
@@ -33,6 +37,13 @@ type
   // El formulario utilizará esta colección para rellenar el grid.
   FVentas: TObjectList<TVenta>;
 
+  // Colección de clientes utilizada por el filtro del historial.
+  // Los datos se cargan mediante el Data Module; el formulario no ejecuta SQL.
+  FClientesFiltro: TObjectList<TCliente>;
+
+  procedure CargarClientesFiltro;
+  function ObtenerIdClienteFiltro: Integer;
+  procedure AplicarFiltroCliente;
   procedure ActualizarTablaVentas;
 
 
@@ -53,6 +64,7 @@ implementation
 procedure TfrmHistorialVentas.FormCreate(Sender: TObject);
 begin
   FVentas := TObjectList<TVenta>.Create(True);
+  FClientesFiltro := TObjectList<TCliente>.Create(True);
 
   // Preparamos las columnas visibles del historial.
   grdVentas.ColCount := 7;
@@ -68,6 +80,57 @@ begin
   grdVentas.Cells[6, 0] := 'Total';
 end;
 
+
+
+procedure TfrmHistorialVentas.CargarClientesFiltro;
+var
+  I: Integer;
+begin
+  // Dejamos siempre disponible la opción general, incluso antes de
+  // recuperar los clientes desde SQLite.
+  cboClienteFiltro.Items.BeginUpdate;
+  try
+    cboClienteFiltro.Items.Clear;
+    cboClienteFiltro.Items.Add('Todos los clientes');
+    cboClienteFiltro.ItemIndex := 0;
+
+    // Reutilizamos la carga de CLIENTES ya existente en el Data Module.
+    dmDatos.CargarClientes(FClientesFiltro);
+
+    for I := 0 to FClientesFiltro.Count - 1 do
+      cboClienteFiltro.Items.Add(
+        IntToStr(FClientesFiltro[I].IdCliente) + ' - ' +
+        FClientesFiltro[I].Nombre
+      );
+  finally
+    cboClienteFiltro.Items.EndUpdate;
+  end;
+end;
+
+
+function TfrmHistorialVentas.ObtenerIdClienteFiltro: Integer;
+begin
+  // El primer elemento representa el historial general.
+  if cboClienteFiltro.ItemIndex <= 0 then
+    Exit(0);
+
+  // Los clientes se añaden al ComboBox en el mismo orden
+  // que mantienen dentro de FClientesFiltro.
+  Result := FClientesFiltro[cboClienteFiltro.ItemIndex - 1].IdCliente;
+end;
+
+
+procedure TfrmHistorialVentas.AplicarFiltroCliente;
+begin
+  // El Data Module decide si devuelve todas las ventas
+  // o solamente las del cliente seleccionado.
+  dmDatos.CargarVentas(
+    FVentas,
+    ObtenerIdClienteFiltro
+  );
+
+  ActualizarTablaVentas;
+end;
 
 
 procedure TfrmHistorialVentas.ActualizarResumenVentas;
@@ -100,6 +163,9 @@ end;
 
 procedure TfrmHistorialVentas.FormShow(Sender: TObject);
 begin
+  // Recargamos el selector desde CLIENTES sin duplicar SQL en el formulario.
+  CargarClientesFiltro;
+
   // Cada vez que se abre el historial,
   // recargamos las ventas directamente desde SQLite.
   dmDatos.CargarVentas(FVentas);
@@ -117,6 +183,13 @@ begin
 end;
 
 
+
+
+procedure TfrmHistorialVentas.FormDestroy(Sender: TObject);
+begin
+  FClientesFiltro.Free;
+  FVentas.Free;
+end;
 
 
 procedure TfrmHistorialVentas.ActualizarTablaVentas;
@@ -158,6 +231,16 @@ begin
 
 
 end;
+
+procedure TfrmHistorialVentas.cboClienteFiltroChange(Sender: TObject);
+begin
+  // Al cambiar de cliente dejamos atrás cualquier texto de búsqueda
+  // para que la vista refleje claramente el filtro seleccionado.
+  edtBuscarVenta.Clear;
+
+  AplicarFiltroCliente;
+end;
+
 
 procedure TfrmHistorialVentas.btnBuscarVentaClick(Sender: TObject);
 begin
