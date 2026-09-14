@@ -10,7 +10,9 @@ uses
   HistorialVentas in 'HistorialVentas.pas' {frmHistorialVentas},
   uVenta in 'uVenta.pas',
   uCliente in 'uCliente.pas',
-  Clientes in 'Clientes.pas' {frmClientes};
+  Clientes in 'Clientes.pas' {frmClientes},
+  uMovimientoStock in 'uMovimientoStock.pas',
+  MovimientoStock in 'MovimientoStock.pas' {frmMovimientoStock};
 
 {$R *.res}
 
@@ -22,5 +24,8 @@ begin
   Application.CreateForm(Tfrmproductos, frmproductos);
   Application.CreateForm(TfrmVentas, frmVentas);
   Application.CreateForm(TfrmHistorialVentas, frmHistorialVentas);
+  Application.CreateForm(TfrmMovimientoStock, frmMovimientoStock);
+  Application.CreateForm(TfrmMovimientoStock, frmMovimientoStock);
+  Application.CreateForm(TfrmMovimientoStock, frmMovimientoStock);
   Application.Run;
 end.

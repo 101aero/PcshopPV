@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Ventas, HistorialVentas, Clientes;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Menus, Ventas, HistorialVentas, Clientes, MovimientoStock;
 
 type
   Tfrmprincipal = class(TForm)
@@ -19,10 +19,12 @@ type
     Informes2: TMenuItem;
     Acercade1: TMenuItem;
     mnuHistorialVentas: TMenuItem;
+    mnuMovimientoStock: TMenuItem;
     procedure Gestin2Click(Sender: TObject);
     procedure Clientes1Click(Sender: TObject);
     procedure Clientes2Click(Sender: TObject);
     procedure mnuHistorialVentasClick(Sender: TObject);
+    procedure mnuMovimientoStockClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -43,7 +45,7 @@ var
   FormClientes: TfrmClientes;
 begin
   // Clientes se crea al abrirlo y se libera al cerrar.
-  // Así no añadimos otro formulario al arranque de PC Shop.
+  // Asï¿½ no aï¿½adimos otro formulario al arranque de PC Shop.
   FormClientes := TfrmClientes.Create(Self);
   try
     FormClientes.ShowModal;
@@ -67,6 +69,20 @@ begin
 
 frmHistorialVentas.ShowModal;
 
+end;
+
+procedure Tfrmprincipal.mnuMovimientoStockClick(Sender: TObject);
+var
+  FormMovimientoStock: TfrmMovimientoStock;
+begin
+  // El formulario se crea solo cuando el usuario lo necesita
+  // y se libera al cerrarlo.
+  FormMovimientoStock := TfrmMovimientoStock.Create(Self);
+  try
+    FormMovimientoStock.ShowModal;
+  finally
+    FormMovimientoStock.Free;
+  end;
 end;
 
 end.

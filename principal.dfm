@@ -27,6 +27,10 @@ object frmprincipal: Tfrmprincipal
         Caption = 'Productos'
         OnClick = Gestin2Click
       end
+      object mnuMovimientoStock: TMenuItem
+        Caption = 'Movimientos de stock'
+        OnClick = mnuMovimientoStockClick
+      end
       object Clientes1: TMenuItem
         Caption = 'Clientes'
         OnClick = Clientes1Click

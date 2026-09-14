@@ -441,4 +441,93 @@ object dmDatos: TdmDatos
     Left = 1056
     Top = 816
   end
+  object qryCrearTablaMovimientosStock: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'CREATE TABLE IF NOT EXISTS MOVIMIENTOS_STOCK ('
+      '  IdMovimiento INTEGER PRIMARY KEY AUTOINCREMENT,'
+      '  Fecha TEXT NOT NULL,'
+      '  CodigoProducto TEXT NOT NULL,'
+      '  Tipo TEXT NOT NULL,'
+      '  Cantidad INTEGER NOT NULL,'
+      '  Motivo TEXT NOT NULL,'
+      '  CHECK (Tipo IN ('#39'ENTRADA'#39', '#39'SALIDA'#39', '#39'AJUSTE'#39')),'
+      '  CHECK ('
+      '    (Tipo = '#39'ENTRADA'#39' AND Cantidad > 0) OR'
+      '    (Tipo = '#39'SALIDA'#39' AND Cantidad < 0) OR'
+      '    (Tipo = '#39'AJUSTE'#39' AND Cantidad <> 0)'
+      '  )'
+      ');')
+    Left = 968
+    Top = 744
+  end
+
+  object qryInsertarMovimientoStock: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'INSERT INTO MOVIMIENTOS_STOCK'
+      '  (Fecha, CodigoProducto, Tipo, Cantidad, Motivo)'
+      'VALUES'
+      '  (:Fecha, :CodigoProducto, :Tipo, :Cantidad, :Motivo);')
+    Left = 856
+    Top = 816
+    ParamData = <
+      item
+        Name = 'FECHA'
+        ParamType = ptInput
+      end
+      item
+        Name = 'CODIGOPRODUCTO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'TIPO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'CANTIDAD'
+        ParamType = ptInput
+      end
+      item
+        Name = 'MOTIVO'
+        ParamType = ptInput
+      end>
+  end
+
+  object qryActualizarStockMovimiento: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'UPDATE PRODUCTOS'
+      'SET Stock = Stock + :Cantidad'
+      'WHERE Codigo = :CodigoProducto'
+      '  AND Stock + :Cantidad >= 0;')
+    Left = 744
+    Top = 816
+    ParamData = <
+      item
+        Name = 'CANTIDAD'
+        ParamType = ptInput
+      end
+      item
+        Name = 'CODIGOPRODUCTO'
+        ParamType = ptInput
+      end>
+  end
+
+  object qryListarMovimientosStock: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT'
+      '  IdMovimiento,'
+      '  Fecha,'
+      '  CodigoProducto,'
+      '  Tipo,'
+      '  Cantidad,'
+      '  Motivo'
+      'FROM MOVIMIENTOS_STOCK'
+      'ORDER BY IdMovimiento DESC;')
+    Left = 632
+    Top = 816
+  end
+
 end

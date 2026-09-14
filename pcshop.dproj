@@ -153,6 +153,11 @@
             <Form>frmClientes</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="uMovimientoStock.pas"/>
+        <DCCReference Include="MovimientoStock.pas">
+            <Form>frmMovimientoStock</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -10,7 +10,8 @@ uses
   FireDAC.Phys.PGDef, FireDAC.Phys.PG, Data.DB, FireDAC.Comp.Client,
   FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Stan.Param, FireDAC.DatS,
-  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta, uCliente;
+  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta, uCliente,
+  uMovimientoStock;
 
 type
   TdmDatos = class(TDataModule)
@@ -41,6 +42,10 @@ type
     qryBuscarClientes: TFDQuery;
     qryEstructuraVentas: TFDQuery;
     qryAgregarIdClienteVentas: TFDQuery;
+    qryCrearTablaMovimientosStock: TFDQuery;
+    qryInsertarMovimientoStock: TFDQuery;
+    qryActualizarStockMovimiento: TFDQuery;
+    qryListarMovimientosStock: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -66,6 +71,25 @@ type
 
 
 public
+
+// MOVIMIENTOS DE STOCK ----------------------------------------------------
+// Registra únicamente la trazabilidad del movimiento.
+// En este paso todavía NO modifica PRODUCTOS.Stock.
+function RegistrarMovimientoStock(
+  const AMovimiento: TMovimientoStock
+): Boolean;
+
+// Aplica la variación al stock y registra su trazabilidad como una sola
+// operación. Si cualquiera de las dos acciones falla, se hace ROLLBACK.
+function AplicarMovimientoStock(
+  const AMovimiento: TMovimientoStock
+): Boolean;
+
+// Recupera la trazabilidad ya persistida. La lista recibida es propiedad
+// del formulario/capa llamadora; el Data Module solo la rellena.
+procedure CargarMovimientosStock(
+  ALista: TObjectList<TMovimientoStock>
+);
 
 // CLIENTES ---------------------------------------------------------------
 // El formulario trabaja con TCliente y delega todo el SQL en el Data Module.
@@ -196,6 +220,11 @@ begin
   // CLIENTES se crea automáticamente si todavía no existe.
   // IdCliente será la clave estable para futuras relaciones con VENTAS.
   qryCrearTablaClientes.ExecSQL;
+
+  // MOVIMIENTOS_STOCK registra la trazabilidad del inventario.
+  // Es una tabla nueva, por lo que CREATE TABLE IF NOT EXISTS es suficiente:
+  // no necesitamos migrar una estructura previa como ocurrió con VENTAS.
+  qryCrearTablaMovimientosStock.ExecSQL;
 end;
 // END-CREATE //
 
@@ -250,6 +279,227 @@ end;
 
 
 // ========================================================================
+// MOVIMIENTOS DE STOCK
+// ========================================================================
+
+function TdmDatos.RegistrarMovimientoStock(
+  const AMovimiento: TMovimientoStock
+): Boolean;
+var
+  FechaMovimiento: string;
+begin
+  FUltimoError := '';
+  Result := False;
+
+  // La fecha pertenece a la trazabilidad de la operación.
+  // Si el llamador no proporciona una, la capa de datos toma el momento
+  // real en que se registra el movimiento.
+  FechaMovimiento := Trim(AMovimiento.Fecha);
+  if FechaMovimiento = '' then
+    FechaMovimiento := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
+
+  try
+    qryInsertarMovimientoStock.ParamByName('Fecha').AsString :=
+      FechaMovimiento;
+
+    qryInsertarMovimientoStock.ParamByName('CodigoProducto').AsString :=
+      AMovimiento.CodigoProducto;
+
+    // Delphi trabaja con un enumerado; SQLite guarda texto legible.
+    qryInsertarMovimientoStock.ParamByName('Tipo').AsString :=
+      TipoMovimientoStockToString(AMovimiento.Tipo);
+
+    qryInsertarMovimientoStock.ParamByName('Cantidad').AsInteger :=
+      AMovimiento.Cantidad;
+
+    qryInsertarMovimientoStock.ParamByName('Motivo').AsString :=
+      AMovimiento.Motivo;
+
+    qryInsertarMovimientoStock.ExecSQL;
+
+    Result := qryInsertarMovimientoStock.RowsAffected > 0;
+
+    if not Result then
+      FUltimoError :=
+        'No se ha podido registrar el movimiento de stock.';
+
+  except
+    on E: Exception do
+    begin
+      RegistrarError(
+        'INSERT MOVIMIENTO STOCK',
+        'Codigo=' + AMovimiento.CodigoProducto +
+        ' | Tipo=' + TipoMovimientoStockToString(AMovimiento.Tipo) +
+        ' | Cantidad=' + IntToStr(AMovimiento.Cantidad) +
+        ' | ' + E.Message
+      );
+
+      FUltimoError :=
+        'No se ha podido registrar el movimiento de stock.';
+
+      Result := False;
+    end;
+  end;
+end;
+
+
+function TdmDatos.AplicarMovimientoStock(
+  const AMovimiento: TMovimientoStock
+): Boolean;
+begin
+  FUltimoError := '';
+  Result := False;
+
+  // Validamos antes de abrir la transacción. Cantidad representa siempre
+  // la variación: positiva en ENTRADA, negativa en SALIDA y con cualquier
+  // signo (excepto cero) en AJUSTE.
+  if Trim(AMovimiento.CodigoProducto) = '' then
+  begin
+    FUltimoError := 'El movimiento debe indicar un producto.';
+    Exit;
+  end;
+
+  if Trim(AMovimiento.Motivo) = '' then
+  begin
+    FUltimoError := 'El movimiento debe indicar un motivo.';
+    Exit;
+  end;
+
+  case AMovimiento.Tipo of
+    tmsEntrada:
+      if AMovimiento.Cantidad <= 0 then
+      begin
+        FUltimoError := 'Una entrada debe tener una cantidad positiva.';
+        Exit;
+      end;
+
+    tmsSalida:
+      if AMovimiento.Cantidad >= 0 then
+      begin
+        FUltimoError := 'Una salida debe tener una cantidad negativa.';
+        Exit;
+      end;
+
+    tmsAjuste:
+      if AMovimiento.Cantidad = 0 then
+      begin
+        FUltimoError := 'Un ajuste debe modificar el stock.';
+        Exit;
+      end;
+  end;
+
+  try
+    // El stock actual y su explicación histórica deben cambiar juntos.
+    FDConnection1.StartTransaction;
+
+    // 1. Aplicamos la variación al stock. La condición adicional impide
+    // que una SALIDA o AJUSTE negativo deje existencias por debajo de cero.
+    qryActualizarStockMovimiento.ParamByName('Cantidad').AsInteger :=
+      AMovimiento.Cantidad;
+
+    qryActualizarStockMovimiento.ParamByName('CodigoProducto').AsString :=
+      AMovimiento.CodigoProducto;
+
+    qryActualizarStockMovimiento.ExecSQL;
+
+    if qryActualizarStockMovimiento.RowsAffected <= 0 then
+    begin
+      FDConnection1.Rollback;
+      FUltimoError :=
+        'No se ha podido modificar el stock. Comprueba el producto y las existencias.';
+      Exit;
+    end;
+
+    // 2. Registramos por qué cambió. RegistrarMovimientoStock usa la
+    // misma conexión, por lo que su INSERT forma parte de esta transacción.
+    if not RegistrarMovimientoStock(AMovimiento) then
+    begin
+      if FDConnection1.InTransaction then
+        FDConnection1.Rollback;
+      Exit;
+    end;
+
+    // Solo confirmamos cuando las dos operaciones han terminado bien.
+    FDConnection1.Commit;
+    Result := True;
+
+  except
+    on E: Exception do
+    begin
+      if FDConnection1.InTransaction then
+        FDConnection1.Rollback;
+
+      RegistrarError(
+        'APLICAR MOVIMIENTO STOCK',
+        'Codigo=' + AMovimiento.CodigoProducto +
+        ' | Tipo=' + TipoMovimientoStockToString(AMovimiento.Tipo) +
+        ' | Cantidad=' + IntToStr(AMovimiento.Cantidad) +
+        ' | ' + E.Message
+      );
+
+      FUltimoError :=
+        'No se ha podido aplicar el movimiento de stock.';
+      Result := False;
+    end;
+  end;
+end;
+
+
+// ========================================================================
+// ========================================================================
+// CARGA DE MOVIMIENTOS DE STOCK
+// ========================================================================
+
+procedure TdmDatos.CargarMovimientosStock(
+  ALista: TObjectList<TMovimientoStock>
+);
+var
+  Movimiento: TMovimientoStock;
+begin
+  ALista.Clear;
+
+  qryListarMovimientosStock.Close;
+  qryListarMovimientosStock.Open;
+
+  try
+    while not qryListarMovimientosStock.Eof do
+    begin
+      Movimiento := TMovimientoStock.Create;
+
+      try
+        Movimiento.IdMovimiento :=
+          qryListarMovimientosStock.FieldByName('IdMovimiento').AsInteger;
+
+        Movimiento.Fecha :=
+          qryListarMovimientosStock.FieldByName('Fecha').AsString;
+
+        Movimiento.CodigoProducto :=
+          qryListarMovimientosStock.FieldByName('CodigoProducto').AsString;
+
+        Movimiento.Tipo := StringToTipoMovimientoStock(
+          qryListarMovimientosStock.FieldByName('Tipo').AsString
+        );
+
+        Movimiento.Cantidad :=
+          qryListarMovimientosStock.FieldByName('Cantidad').AsInteger;
+
+        Movimiento.Motivo :=
+          qryListarMovimientosStock.FieldByName('Motivo').AsString;
+
+        ALista.Add(Movimiento);
+        Movimiento := nil;
+      finally
+        Movimiento.Free;
+      end;
+
+      qryListarMovimientosStock.Next;
+    end;
+  finally
+    qryListarMovimientosStock.Close;
+  end;
+end;
+
+
 // CLIENTES
 // ========================================================================
 
