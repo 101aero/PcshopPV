@@ -17,6 +17,7 @@ type
   TMovimientoStock = class
   private
     FIdMovimiento: Integer;
+    FIdVenta: Integer;
     FFecha: string;
     FCodigoProducto: string;
     FTipo: TTipoMovimientoStock;
@@ -25,6 +26,12 @@ type
   public
     property IdMovimiento: Integer
       read FIdMovimiento write FIdMovimiento;
+
+    // 0 en Delphi representa ausencia de venta asociada.
+    // Al persistir, ese 0 se traducirá a NULL en SQLite.
+    // Un valor mayor que 0 referencia VENTAS.Id.
+    property IdVenta: Integer
+      read FIdVenta write FIdVenta;
 
     property Fecha: string
       read FFecha write FFecha;

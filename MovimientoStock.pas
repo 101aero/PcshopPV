@@ -67,16 +67,17 @@ begin
   FProductos := TObjectList<TProducto>.Create(True);
   FMovimientos := TObjectList<TMovimientoStock>.Create(True);
 
-  // Configuramos el historial desde el formulario, sin crear controles por código.
-  grdMovimientos.ColCount := 6;
+  // Configuramos el historial desde el formulario, sin crear controles por cï¿½digo.
+  grdMovimientos.ColCount := 7;
   grdMovimientos.RowCount := 2;
   grdMovimientos.FixedRows := 1;
   grdMovimientos.Cells[0, 0] := 'Id';
   grdMovimientos.Cells[1, 0] := 'Fecha';
-  grdMovimientos.Cells[2, 0] := 'Código';
+  grdMovimientos.Cells[2, 0] := 'Cï¿½digo';
   grdMovimientos.Cells[3, 0] := 'Tipo';
   grdMovimientos.Cells[4, 0] := 'Cantidad';
   grdMovimientos.Cells[5, 0] := 'Motivo';
+  grdMovimientos.Cells[6, 0] := 'IdVenta';
 
   // El tipo se representa en la interfaz con opciones cerradas.
   // El formulario traducirÃ¡ despuÃ©s cada opciÃ³n al enumerado Delphi.
@@ -105,7 +106,7 @@ begin
   cboTipo.ItemIndex := 0;
   ActualizarAyudaCantidad;
 
-  // Recuperamos también la trazabilidad ya registrada en SQLite.
+  // Recuperamos tambiï¿½n la trazabilidad ya registrada en SQLite.
   CargarMovimientos;
 end;
 
@@ -148,8 +149,8 @@ var
 begin
   grdMovimientos.RowCount := FMovimientos.Count + 1;
 
-  // TStringGrid necesita al menos una fila de datos además de la cabecera
-  // para mantener una presentación estable cuando no hay movimientos.
+  // TStringGrid necesita al menos una fila de datos ademï¿½s de la cabecera
+  // para mantener una presentaciï¿½n estable cuando no hay movimientos.
   if grdMovimientos.RowCount < 2 then
     grdMovimientos.RowCount := 2;
 
@@ -166,6 +167,13 @@ begin
     grdMovimientos.Cells[3, I + 1] := TipoMovimientoStockToString(Movimiento.Tipo);
     grdMovimientos.Cells[4, I + 1] := IntToStr(Movimiento.Cantidad);
     grdMovimientos.Cells[5, I + 1] := Movimiento.Motivo;
+
+    // IdVenta = 0 representa en Delphi un NULL de SQLite.
+    // Los movimientos manuales no tienen venta asociada.
+    if Movimiento.IdVenta > 0 then
+      grdMovimientos.Cells[6, I + 1] := IntToStr(Movimiento.IdVenta)
+    else
+      grdMovimientos.Cells[6, I + 1] := '-';
   end;
 end;
 
@@ -313,7 +321,7 @@ begin
     Producto.Stock := Producto.Stock + Variacion;
     ActualizarStockMostrado;
 
-    // El movimiento ya está confirmado en SQLite; refrescamos el historial.
+    // El movimiento ya estï¿½ confirmado en SQLite; refrescamos el historial.
     CargarMovimientos;
 
     edtCantidad.Clear;

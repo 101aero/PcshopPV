@@ -46,6 +46,9 @@ type
     qryInsertarMovimientoStock: TFDQuery;
     qryActualizarStockMovimiento: TFDQuery;
     qryListarMovimientosStock: TFDQuery;
+    qryEstructuraMovimientosStock: TFDQuery;
+    qryAgregarIdVentaMovimientos: TFDQuery;
+    qryUltimoIdVenta: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -54,6 +57,10 @@ type
   // Comprueba la estructura real de VENTAS y aplica únicamente
   // la evolución necesaria para conservar los datos existentes.
   procedure MigrarEsquemaVentas;
+
+  // Evoluciona MOVIMIENTOS_STOCK sin borrar ni recrear la tabla.
+  // Los movimientos antiguos conservarán sus datos y tendrán IdVenta = NULL.
+  procedure MigrarEsquemaMovimientosStock;
 
   procedure RegistrarError(
   const AOperacion: string;
@@ -68,6 +75,11 @@ type
   function CrearClienteDesdeQuery(
     AQuery: TFDQuery
   ): TCliente;
+
+  // Devuelve el identificador generado por SQLite para la última venta
+  // insertada mediante esta misma conexión. Debe consultarse inmediatamente
+  // después del INSERT de VENTAS y antes de cualquier otro INSERT.
+  function ObtenerUltimoIdVentaInsertada: Integer;
 
 
 public
@@ -225,6 +237,10 @@ begin
   // Es una tabla nueva, por lo que CREATE TABLE IF NOT EXISTS es suficiente:
   // no necesitamos migrar una estructura previa como ocurrió con VENTAS.
   qryCrearTablaMovimientosStock.ExecSQL;
+
+  // Una base creada antes de incorporar la relación con VENTAS no tendrá
+  // todavía IdVenta. La migración añade únicamente esa columna si falta.
+  MigrarEsquemaMovimientosStock;
 end;
 // END-CREATE //
 
@@ -279,6 +295,48 @@ end;
 
 
 // ========================================================================
+// MIGRACIÓN DE ESQUEMA: MOVIMIENTOS_STOCK
+// ========================================================================
+
+procedure TdmDatos.MigrarEsquemaMovimientosStock;
+var
+  TieneIdVenta: Boolean;
+begin
+  TieneIdVenta := False;
+
+  // Consultamos la estructura real porque cambiar el CREATE TABLE no
+  // modifica una tabla que ya existe y contiene movimientos.
+  qryEstructuraMovimientosStock.Close;
+  qryEstructuraMovimientosStock.Open;
+
+  try
+    while not qryEstructuraMovimientosStock.Eof do
+    begin
+      if SameText(
+        qryEstructuraMovimientosStock.FieldByName('name').AsString,
+        'IdVenta'
+      ) then
+      begin
+        TieneIdVenta := True;
+        Break;
+      end;
+
+      qryEstructuraMovimientosStock.Next;
+    end;
+  finally
+    qryEstructuraMovimientosStock.Close;
+  end;
+
+  if not TieneIdVenta then
+  begin
+    // La nueva columna admite NULL. Por tanto, todos los movimientos
+    // ya existentes siguen siendo válidos y quedan sin venta asociada.
+    qryAgregarIdVentaMovimientos.ExecSQL;
+  end;
+end;
+
+
+// ========================================================================
 // MOVIMIENTOS DE STOCK
 // ========================================================================
 
@@ -314,6 +372,17 @@ begin
 
     qryInsertarMovimientoStock.ParamByName('Motivo').AsString :=
       AMovimiento.Motivo;
+
+    // IdVenta es opcional. Los movimientos manuales utilizan 0 en Delphi,
+    // pero se persisten como NULL. Los movimientos generados por una venta
+    // almacenarán el identificador real de VENTAS.Id.
+    qryInsertarMovimientoStock.ParamByName('IdVenta').DataType := ftInteger;
+
+    if AMovimiento.IdVenta > 0 then
+      qryInsertarMovimientoStock.ParamByName('IdVenta').AsInteger :=
+        AMovimiento.IdVenta
+    else
+      qryInsertarMovimientoStock.ParamByName('IdVenta').Clear;
 
     qryInsertarMovimientoStock.ExecSQL;
 
@@ -485,6 +554,14 @@ begin
 
         Movimiento.Motivo :=
           qryListarMovimientosStock.FieldByName('Motivo').AsString;
+
+        // En SQLite, NULL significa que el movimiento no procede de una venta.
+        // En el modelo Delphi representamos esa ausencia mediante IdVenta = 0.
+        if qryListarMovimientosStock.FieldByName('IdVenta').IsNull then
+          Movimiento.IdVenta := 0
+        else
+          Movimiento.IdVenta :=
+            qryListarMovimientosStock.FieldByName('IdVenta').AsInteger;
 
         ALista.Add(Movimiento);
         Movimiento := nil;
@@ -964,6 +1041,21 @@ end;
 
 
 
+function TdmDatos.ObtenerUltimoIdVentaInsertada: Integer;
+begin
+  Result := 0;
+
+  qryUltimoIdVenta.Close;
+  qryUltimoIdVenta.Open;
+  try
+    Result := qryUltimoIdVenta.FieldByName('IdVenta').AsInteger;
+  finally
+    qryUltimoIdVenta.Close;
+  end;
+end;
+
+
+
 function TdmDatos.RegistrarVenta(
   const AProducto: TProducto;
   ACantidad: Integer;
@@ -971,26 +1063,29 @@ function TdmDatos.RegistrarVenta(
 ): Boolean;
 var
   Total: Double;
+  IdVenta: Integer;
+  FechaVenta: string;
+  Movimiento: TMovimientoStock;
 begin
   FUltimoError := '';
   Result := False;
 
   Total := AProducto.Precio * ACantidad;
+  FechaVenta := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
 
   try
-    // La venta y la reducción de stock forman
-    // una única operación lógica.
+    // Venta, descuento de stock y trazabilidad forman una sola operación.
+    // RegistrarVenta sigue siendo el único propietario de la transacción.
     FDConnection1.StartTransaction;
 
     // --------------------------------------------------
     // 1. Registramos la venta.
     // --------------------------------------------------
     qryInsertarVenta.ParamByName('Fecha').AsString :=
-      FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
+      FechaVenta;
 
     // En Delphi usamos 0 para representar "sin cliente",
-    // pero en SQLite guardamos un NULL real. De este modo
-    // las ventas anónimas y las ventas antiguas siguen siendo válidas.
+    // pero en SQLite guardamos un NULL real.
     qryInsertarVenta.ParamByName('IdCliente').DataType := ftInteger;
 
     if AIdCliente > 0 then
@@ -1016,18 +1111,24 @@ begin
     if qryInsertarVenta.RowsAffected <= 0 then
     begin
       FDConnection1.Rollback;
+      FUltimoError := 'No se ha podido registrar la venta.';
+      Exit;
+    end;
 
+    // El identificador debe recuperarse inmediatamente después del INSERT
+    // de VENTAS, antes de que otro INSERT cambie last_insert_rowid().
+    IdVenta := ObtenerUltimoIdVentaInsertada;
+
+    if IdVenta <= 0 then
+    begin
+      FDConnection1.Rollback;
       FUltimoError :=
-        'No se ha podido registrar la venta.';
-
+        'No se ha podido obtener el identificador de la venta.';
       Exit;
     end;
 
     // --------------------------------------------------
     // 2. Descontamos el stock.
-    //
-    // SQLite vuelve a comprobar que exista suficiente
-    // stock en el momento exacto de realizar la operación.
     // --------------------------------------------------
     qryDescontarStock.ParamByName('Cantidad').AsInteger :=
       ACantidad;
@@ -1039,17 +1140,39 @@ begin
 
     if qryDescontarStock.RowsAffected <= 0 then
     begin
-      // La venta ya se había insertado, pero al formar
-      // parte de la misma transacción también se deshace.
+      // La venta ya se había insertado, pero al estar dentro de la misma
+      // transacción también se deshace.
       FDConnection1.Rollback;
-
       FUltimoError :=
         'No hay stock suficiente para realizar la venta.';
-
       Exit;
     end;
 
-    // Ambas operaciones han terminado correctamente.
+    // --------------------------------------------------
+    // 3. Registramos la salida automática de inventario.
+    // --------------------------------------------------
+    Movimiento := TMovimientoStock.Create;
+    try
+      Movimiento.Fecha := FechaVenta;
+      Movimiento.CodigoProducto := AProducto.Codigo;
+      Movimiento.Tipo := tmsSalida;
+      Movimiento.Cantidad := -ACantidad;
+      Movimiento.Motivo := 'Venta';
+      Movimiento.IdVenta := IdVenta;
+
+      // RegistrarMovimientoStock NO inicia otra transacción. Al utilizar la
+      // misma FDConnection1, este INSERT forma parte de la venta actual.
+      if not RegistrarMovimientoStock(Movimiento) then
+      begin
+        if FDConnection1.InTransaction then
+          FDConnection1.Rollback;
+        Exit;
+      end;
+    finally
+      Movimiento.Free;
+    end;
+
+    // Solo confirmamos cuando venta, stock y movimiento han terminado bien.
     FDConnection1.Commit;
     Result := True;
 
@@ -1073,7 +1196,6 @@ begin
     end;
   end;
 end;
-
 
 
 

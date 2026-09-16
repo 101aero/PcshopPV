@@ -1,6 +1,6 @@
 object dmDatos: TdmDatos
   OnCreate = DataModuleCreate
-  Height = 837
+  Height = 940
   Width = 1116
   PixelsPerInch = 120
   object FDConnection1: TFDConnection
@@ -451,6 +451,7 @@ object dmDatos: TdmDatos
       '  Tipo TEXT NOT NULL,'
       '  Cantidad INTEGER NOT NULL,'
       '  Motivo TEXT NOT NULL,'
+      '  IdVenta INTEGER,'
       '  CHECK (Tipo IN ('#39'ENTRADA'#39', '#39'SALIDA'#39', '#39'AJUSTE'#39')),'
       '  CHECK ('
       '    (Tipo = '#39'ENTRADA'#39' AND Cantidad > 0) OR'
@@ -466,9 +467,9 @@ object dmDatos: TdmDatos
     Connection = FDConnection1
     SQL.Strings = (
       'INSERT INTO MOVIMIENTOS_STOCK'
-      '  (Fecha, CodigoProducto, Tipo, Cantidad, Motivo)'
+      '  (Fecha, CodigoProducto, Tipo, Cantidad, Motivo, IdVenta)'
       'VALUES'
-      '  (:Fecha, :CodigoProducto, :Tipo, :Cantidad, :Motivo);')
+      '  (:Fecha, :CodigoProducto, :Tipo, :Cantidad, :Motivo, :IdVenta);')
     Left = 856
     Top = 816
     ParamData = <
@@ -490,6 +491,11 @@ object dmDatos: TdmDatos
       end
       item
         Name = 'MOTIVO'
+        ParamType = ptInput
+      end
+      item
+        Name = 'IDVENTA'
+        DataType = ftInteger
         ParamType = ptInput
       end>
   end
@@ -523,11 +529,37 @@ object dmDatos: TdmDatos
       '  CodigoProducto,'
       '  Tipo,'
       '  Cantidad,'
-      '  Motivo'
+      '  Motivo,'
+      '  IdVenta'
       'FROM MOVIMIENTOS_STOCK'
       'ORDER BY IdMovimiento DESC;')
     Left = 632
     Top = 816
   end
+
+  object qryEstructuraMovimientosStock: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'PRAGMA table_info(MOVIMIENTOS_STOCK);')
+    Left = 472
+    Top = 888
+  end
+
+  object qryAgregarIdVentaMovimientos: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'ALTER TABLE MOVIMIENTOS_STOCK ADD COLUMN IdVenta INTEGER;')
+    Left = 680
+    Top = 888
+  end
+
+  object qryUltimoIdVenta: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT last_insert_rowid() AS IdVenta;')
+    Left = 888
+    Top = 440
+  end
+
 
 end

@@ -24,8 +24,6 @@ begin
   Application.CreateForm(Tfrmproductos, frmproductos);
   Application.CreateForm(TfrmVentas, frmVentas);
   Application.CreateForm(TfrmHistorialVentas, frmHistorialVentas);
-  Application.CreateForm(TfrmMovimientoStock, frmMovimientoStock);
-  Application.CreateForm(TfrmMovimientoStock, frmMovimientoStock);
-  Application.CreateForm(TfrmMovimientoStock, frmMovimientoStock);
-  Application.Run;
+
+   Application.Run;
 end.
