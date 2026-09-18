@@ -49,6 +49,8 @@ type
     qryEstructuraMovimientosStock: TFDQuery;
     qryAgregarIdVentaMovimientos: TFDQuery;
     qryUltimoIdVenta: TFDQuery;
+    qryAuditoriaTrazabilidadResumen: TFDQuery;
+    qryAuditoriaTrazabilidadDetalle: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -159,6 +161,17 @@ procedure FiltrarProductosStockBajo(
 );
 
 function ExisteCodigoProducto(const ACodigo: string): Boolean;
+
+// AUDITORIA DE TRAZABILIDAD -----------------------------------------------
+// Comprueba la coherencia entre VENTAS y los movimientos de stock
+// generados automaticamente por una venta. No modifica ningun dato.
+function ComprobarTrazabilidadInventario(
+  out AVentasRevisadas: Integer;
+  out ASinMovimiento: Integer;
+  out ADuplicados: Integer;
+  out AHuerfanos: Integer;
+  out ACantidadesIncoherentes: Integer
+): Boolean;
 
 procedure RegistrarDiagnostico(
   const AOperacion: string;
@@ -1386,6 +1399,116 @@ end;
 
 
 
+
+// ========================================================================
+// AUDITORIA DE TRAZABILIDAD DE INVENTARIO
+// ========================================================================
+
+function TdmDatos.ComprobarTrazabilidadInventario(
+  out AVentasRevisadas: Integer;
+  out ASinMovimiento: Integer;
+  out ADuplicados: Integer;
+  out AHuerfanos: Integer;
+  out ACantidadesIncoherentes: Integer
+): Boolean;
+var
+  TotalIncidencias: Integer;
+begin
+  Result := False;
+  FUltimoError := '';
+
+  AVentasRevisadas := 0;
+  ASinMovimiento := 0;
+  ADuplicados := 0;
+  AHuerfanos := 0;
+  ACantidadesIncoherentes := 0;
+
+  qryAuditoriaTrazabilidadResumen.Close;
+  qryAuditoriaTrazabilidadDetalle.Close;
+
+  try
+    // Esta comprobacion es de solo lectura: no repara ni modifica datos.
+    qryAuditoriaTrazabilidadResumen.Open;
+    try
+      AVentasRevisadas :=
+        qryAuditoriaTrazabilidadResumen.FieldByName('VentasRevisadas').AsInteger;
+
+      ASinMovimiento :=
+        qryAuditoriaTrazabilidadResumen.FieldByName('SinMovimiento').AsInteger;
+
+      ADuplicados :=
+        qryAuditoriaTrazabilidadResumen.FieldByName('Duplicados').AsInteger;
+
+      AHuerfanos :=
+        qryAuditoriaTrazabilidadResumen.FieldByName('Huerfanos').AsInteger;
+
+      ACantidadesIncoherentes :=
+        qryAuditoriaTrazabilidadResumen
+          .FieldByName('CantidadesIncoherentes').AsInteger;
+    finally
+      qryAuditoriaTrazabilidadResumen.Close;
+    end;
+
+    TotalIncidencias :=
+      ASinMovimiento +
+      ADuplicados +
+      AHuerfanos +
+      ACantidadesIncoherentes;
+
+    // Reutilizamos el log tecnico existente unicamente si hay incidencias.
+    if TotalIncidencias > 0 then
+    begin
+      RegistrarDiagnostico(
+        'AUDITORIA INVENTARIO',
+        Format(
+          'Resumen | Ventas=%d | SinMovimiento=%d | Duplicados=%d | ' +
+          'Huerfanos=%d | CantidadesIncoherentes=%d',
+          [
+            AVentasRevisadas,
+            ASinMovimiento,
+            ADuplicados,
+            AHuerfanos,
+            ACantidadesIncoherentes
+          ]
+        )
+      );
+
+      qryAuditoriaTrazabilidadDetalle.Open;
+      try
+        while not qryAuditoriaTrazabilidadDetalle.Eof do
+        begin
+          RegistrarDiagnostico(
+            'AUDITORIA INVENTARIO',
+            qryAuditoriaTrazabilidadDetalle.FieldByName('Detalle').AsString
+          );
+
+          qryAuditoriaTrazabilidadDetalle.Next;
+        end;
+      finally
+        qryAuditoriaTrazabilidadDetalle.Close;
+      end;
+    end;
+
+    Result := True;
+
+  except
+    on E: Exception do
+    begin
+      qryAuditoriaTrazabilidadResumen.Close;
+      qryAuditoriaTrazabilidadDetalle.Close;
+
+      FUltimoError :=
+        'No se ha podido completar la auditoria de trazabilidad.';
+
+      RegistrarError(
+        'AUDITORIA INVENTARIO',
+        E.Message
+      );
+
+      Result := False;
+    end;
+  end;
+end;
 
 
 // LOGERROR

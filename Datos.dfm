@@ -562,4 +562,110 @@ object dmDatos: TdmDatos
   end
 
 
+
+  object qryAuditoriaTrazabilidadResumen: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT'
+      '  (SELECT COUNT(*) FROM VENTAS) AS VentasRevisadas,'
+      '  ('
+      '    SELECT COUNT(*)'
+      '    FROM VENTAS v'
+      '    WHERE NOT EXISTS ('
+      '      SELECT 1'
+      '      FROM MOVIMIENTOS_STOCK m'
+      '      WHERE m.IdVenta = v.Id'
+      '        AND m.Tipo = ''SALIDA'''
+      '        AND m.Motivo = ''Venta'''
+      '    )'
+      '  ) AS SinMovimiento,'
+      '  ('
+      '    SELECT COUNT(*)'
+      '    FROM ('
+      '      SELECT m.IdVenta'
+      '      FROM MOVIMIENTOS_STOCK m'
+      '      WHERE m.IdVenta IS NOT NULL'
+      '        AND m.Tipo = ''SALIDA'''
+      '        AND m.Motivo = ''Venta'''
+      '      GROUP BY m.IdVenta'
+      '      HAVING COUNT(*) > 1'
+      '    ) duplicadas'
+      '  ) AS Duplicados,'
+      '  ('
+      '    SELECT COUNT(*)'
+      '    FROM MOVIMIENTOS_STOCK m'
+      '    LEFT JOIN VENTAS v ON v.Id = m.IdVenta'
+      '    WHERE m.IdVenta IS NOT NULL'
+      '      AND v.Id IS NULL'
+      '  ) AS Huerfanos,'
+      '  ('
+      '    SELECT COUNT(*)'
+      '    FROM MOVIMIENTOS_STOCK m'
+      '    INNER JOIN VENTAS v ON v.Id = m.IdVenta'
+      '    WHERE m.Tipo = ''SALIDA'''
+      '      AND m.Motivo = ''Venta'''
+      '      AND m.Cantidad <> -v.Cantidad'
+      '  ) AS CantidadesIncoherentes;')
+    Left = 1048
+    Top = 440
+  end
+
+  object qryAuditoriaTrazabilidadDetalle: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'SELECT 1 AS Orden,'
+      '       ''SIN_MOVIMIENTO | Venta Id='' || v.Id ||'
+      '       '' | Producto='' || v.CodigoProducto ||'
+      '       '' | Cantidad='' || v.Cantidad AS Detalle'
+      'FROM VENTAS v'
+      'WHERE NOT EXISTS ('
+      '  SELECT 1'
+      '  FROM MOVIMIENTOS_STOCK m'
+      '  WHERE m.IdVenta = v.Id'
+      '    AND m.Tipo = ''SALIDA'''
+      '    AND m.Motivo = ''Venta'''
+      ')'
+      ''
+      'UNION ALL'
+      ''
+      'SELECT 2 AS Orden,'
+      '       ''DUPLICADO | Venta Id='' || v.Id ||'
+      '       '' | Movimientos automaticos='' || COUNT(m.IdMovimiento)'
+      '       AS Detalle'
+      'FROM VENTAS v'
+      'INNER JOIN MOVIMIENTOS_STOCK m ON m.IdVenta = v.Id'
+      'WHERE m.Tipo = ''SALIDA'''
+      '  AND m.Motivo = ''Venta'''
+      'GROUP BY v.Id'
+      'HAVING COUNT(m.IdMovimiento) > 1'
+      ''
+      'UNION ALL'
+      ''
+      'SELECT 3 AS Orden,'
+      '       ''HUERFANO | Movimiento Id='' || m.IdMovimiento ||'
+      '       '' | IdVenta='' || m.IdVenta ||'
+      '       '' | Producto='' || m.CodigoProducto AS Detalle'
+      'FROM MOVIMIENTOS_STOCK m'
+      'LEFT JOIN VENTAS v ON v.Id = m.IdVenta'
+      'WHERE m.IdVenta IS NOT NULL'
+      '  AND v.Id IS NULL'
+      ''
+      'UNION ALL'
+      ''
+      'SELECT 4 AS Orden,'
+      '       ''CANTIDAD_INCOHERENTE | Venta Id='' || v.Id ||'
+      '       '' | Cantidad venta='' || v.Cantidad ||'
+      '       '' | Movimiento Id='' || m.IdMovimiento ||'
+      '       '' | Cantidad movimiento='' || m.Cantidad AS Detalle'
+      'FROM MOVIMIENTOS_STOCK m'
+      'INNER JOIN VENTAS v ON v.Id = m.IdVenta'
+      'WHERE m.Tipo = ''SALIDA'''
+      '  AND m.Motivo = ''Venta'''
+      '  AND m.Cantidad <> -v.Cantidad'
+      ''
+      'ORDER BY Orden, Detalle;')
+    Left = 1048
+    Top = 512
+  end
+
 end

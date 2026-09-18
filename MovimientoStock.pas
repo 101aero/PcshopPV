@@ -36,6 +36,8 @@ type
     btnCerrar: TButton;
     grpHistorial: TGroupBox;
     grdMovimientos: TStringGrid;
+    btnComprobarTrazabilidad: TButton;
+    lblAuditoria: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -43,6 +45,7 @@ type
     procedure cboTipoChange(Sender: TObject);
     procedure btnAplicarClick(Sender: TObject);
     procedure btnCerrarClick(Sender: TObject);
+    procedure btnComprobarTrazabilidadClick(Sender: TObject);
   private
     FProductos: TObjectList<TProducto>;
     FMovimientos: TObjectList<TMovimientoStock>;
@@ -333,6 +336,58 @@ begin
   finally
     Movimiento.Free;
   end;
+end;
+
+
+procedure TfrmMovimientoStock.btnComprobarTrazabilidadClick(Sender: TObject);
+var
+  VentasRevisadas: Integer;
+  SinMovimiento: Integer;
+  Duplicados: Integer;
+  Huerfanos: Integer;
+  CantidadesIncoherentes: Integer;
+  TotalIncidencias: Integer;
+begin
+  // El formulario solo solicita la comprobacion y presenta el resumen.
+  // Las consultas SQL y el registro de incidencias permanecen en el Data Module.
+  if not dmDatos.ComprobarTrazabilidadInventario(
+    VentasRevisadas,
+    SinMovimiento,
+    Duplicados,
+    Huerfanos,
+    CantidadesIncoherentes
+  ) then
+  begin
+    lblAuditoria.Caption :=
+      'Auditoria: error - ' + dmDatos.UltimoError;
+    Exit;
+  end;
+
+  TotalIncidencias :=
+    SinMovimiento +
+    Duplicados +
+    Huerfanos +
+    CantidadesIncoherentes;
+
+  if TotalIncidencias = 0 then
+    lblAuditoria.Caption := Format(
+      'Ventas revisadas: %d | Sin movimiento: 0 | Duplicados: 0 | ' +
+      'Huerfanos: 0 | Cantidades incoherentes: 0 | TRAZABILIDAD CORRECTA',
+      [VentasRevisadas]
+    )
+  else
+    lblAuditoria.Caption := Format(
+      'Ventas revisadas: %d | Sin movimiento: %d | Duplicados: %d | ' +
+      'Huerfanos: %d | Cantidades incoherentes: %d | INCIDENCIAS: %d',
+      [
+        VentasRevisadas,
+        SinMovimiento,
+        Duplicados,
+        Huerfanos,
+        CantidadesIncoherentes,
+        TotalIncidencias
+      ]
+    );
 end;
 
 procedure TfrmMovimientoStock.btnCerrarClick(Sender: TObject);

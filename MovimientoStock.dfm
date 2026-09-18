@@ -123,17 +123,35 @@ object frmMovimientoStock: TfrmMovimientoStock
     Height = 249
     Caption = 'Historial de movimientos de stock'
     TabOrder = 1
+    object lblAuditoria: TLabel
+      Left = 190
+      Top = 23
+      Width = 478
+      Height = 34
+      AutoSize = False
+      Caption = 'Auditoria: sin comprobar'
+      WordWrap = True
+    end
+    object btnComprobarTrazabilidad: TButton
+      Left = 16
+      Top = 22
+      Width = 160
+      Height = 30
+      Caption = 'Comprobar trazabilidad'
+      TabOrder = 0
+      OnClick = btnComprobarTrazabilidadClick
+    end
     object grdMovimientos: TStringGrid
       Left = 16
-      Top = 24
+      Top = 64
       Width = 656
-      Height = 208
+      Height = 168
       ColCount = 7
       DefaultColWidth = 90
       FixedCols = 0
       RowCount = 2
       Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
-      TabOrder = 0
+      TabOrder = 1
       ColWidths = (
         48
         122
