@@ -51,6 +51,8 @@ type
     qryUltimoIdVenta: TFDQuery;
     qryAuditoriaTrazabilidadResumen: TFDQuery;
     qryAuditoriaTrazabilidadDetalle: TFDQuery;
+    qryAgregarTrazableVentas: TFDQuery;
+    qryCrearIndiceUnicoMovimientoVenta: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -242,6 +244,7 @@ begin
   // Por eso comprobamos y migramos el esquema de VENTAS aparte.
   MigrarEsquemaVentas;
 
+
   // CLIENTES se crea automáticamente si todavía no existe.
   // IdCliente será la clave estable para futuras relaciones con VENTAS.
   qryCrearTablaClientes.ExecSQL;
@@ -254,6 +257,9 @@ begin
   // Una base creada antes de incorporar la relación con VENTAS no tendrá
   // todavía IdVenta. La migración añade únicamente esa columna si falta.
   MigrarEsquemaMovimientosStock;
+
+  qryCrearIndiceUnicoMovimientoVenta.ExecSQL;
+
 end;
 // END-CREATE //
 
@@ -261,36 +267,32 @@ end;
 
 
 
-
-
-
-// ========================================================================
-// MIGRACIÓN DE ESQUEMA: VENTAS
-// ========================================================================
-
 procedure TdmDatos.MigrarEsquemaVentas;
 var
   TieneIdCliente: Boolean;
+  TieneTrazable: Boolean;
+  NombreCampo: string;
 begin
   TieneIdCliente := False;
+  TieneTrazable := False;
 
-  // PRAGMA table_info devuelve la estructura real de la tabla existente.
-  // Esto permite distinguir una base antigua de una ya migrada.
   qryEstructuraVentas.Close;
   qryEstructuraVentas.Open;
 
   try
     while not qryEstructuraVentas.Eof do
     begin
-      if SameText(
-        qryEstructuraVentas.FieldByName('name').AsString,
-        'IdCliente'
-      ) then
-      begin
-        TieneIdCliente := True;
-        Break;
-      end;
+      NombreCampo :=
+        qryEstructuraVentas.FieldByName('name').AsString;
 
+      if SameText(NombreCampo, 'IdCliente') then
+        TieneIdCliente := True;
+
+      if SameText(NombreCampo, 'Trazable') then
+        TieneTrazable := True;
+
+      // No hacemos Break:
+      // necesitamos revisar toda la estructura de VENTAS.
       qryEstructuraVentas.Next;
     end;
   finally
@@ -298,14 +300,11 @@ begin
   end;
 
   if not TieneIdCliente then
-  begin
-    // En SQLite una columna sin NOT NULL admite NULL por defecto.
-    // Las ventas anteriores conservarán todos sus datos y recibirán
-    // NULL en IdCliente automáticamente.
     qryAgregarIdClienteVentas.ExecSQL;
-  end;
-end;
 
+  if not TieneTrazable then
+    qryAgregarTrazableVentas.ExecSQL;
+end;
 
 // ========================================================================
 // MIGRACIÓN DE ESQUEMA: MOVIMIENTOS_STOCK
@@ -1118,6 +1117,10 @@ begin
 
     qryInsertarVenta.ParamByName('Total').AsFloat :=
       Total;
+
+      // Las ventas creadas por la versión actual ya forman parte
+// del sistema de trazabilidad de inventario.
+qryInsertarVenta.ParamByName('Trazable').AsInteger := 1;
 
     qryInsertarVenta.ExecSQL;
 

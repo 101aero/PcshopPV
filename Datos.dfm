@@ -7,6 +7,7 @@ object dmDatos: TdmDatos
     Params.Strings = (
       'LockingMode=Normal'
       'DriverID=SQLite')
+    Connected = True
     Left = 72
     Top = 43
   end
@@ -193,9 +194,13 @@ object dmDatos: TdmDatos
     Connection = FDConnection1
     SQL.Strings = (
       'INSERT INTO VENTAS'
-      '  (Fecha, IdCliente, CodigoProducto, Cantidad, PrecioUnitario, Total)'
+      
+        '  (Fecha, IdCliente, CodigoProducto, Cantidad, PrecioUnitario, T' +
+        'otal, Trazable)'
       'VALUES'
-      '  (:Fecha, :IdCliente, :CodigoProducto, :Cantidad, :PrecioUnitario, :Total);')
+      
+        '  (:Fecha, :IdCliente, :CodigoProducto, :Cantidad, :PrecioUnitar' +
+        'io, :Total, :Trazable);')
     Left = 440
     Top = 440
     ParamData = <
@@ -222,6 +227,10 @@ object dmDatos: TdmDatos
       end
       item
         Name = 'TOTAL'
+        ParamType = ptInput
+      end
+      item
+        Name = 'TRAZABLE'
         ParamType = ptInput
       end>
   end
@@ -253,7 +262,7 @@ object dmDatos: TdmDatos
       '    v.Fecha,'
       '    v.CodigoProducto,'
       '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
-      '    COALESCE(c.Nombre, '#39'(venta anónima)'#39') AS Cliente,'
+      '    COALESCE(c.Nombre, '#39'(venta an'#243'nima)'#39') AS Cliente,'
       '    v.Cantidad,'
       '    v.PrecioUnitario,'
       '    v.Total'
@@ -292,7 +301,7 @@ object dmDatos: TdmDatos
       '    v.Fecha,'
       '    v.CodigoProducto,'
       '    COALESCE(p.Nombre, '#39'(producto no disponible)'#39') AS Producto,'
-      '    COALESCE(c.Nombre, '#39'(venta anónima)'#39') AS Cliente,'
+      '    COALESCE(c.Nombre, '#39'(venta an'#243'nima)'#39') AS Cliente,'
       '    v.Cantidad,'
       '    v.PrecioUnitario,'
       '    v.Total'
@@ -316,7 +325,6 @@ object dmDatos: TdmDatos
         ParamType = ptInput
       end>
   end
-
   object qryCrearTablaClientes: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -462,14 +470,15 @@ object dmDatos: TdmDatos
     Left = 968
     Top = 744
   end
-
   object qryInsertarMovimientoStock: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
       'INSERT INTO MOVIMIENTOS_STOCK'
       '  (Fecha, CodigoProducto, Tipo, Cantidad, Motivo, IdVenta)'
       'VALUES'
-      '  (:Fecha, :CodigoProducto, :Tipo, :Cantidad, :Motivo, :IdVenta);')
+      
+        '  (:Fecha, :CodigoProducto, :Tipo, :Cantidad, :Motivo, :IdVenta)' +
+        ';')
     Left = 856
     Top = 816
     ParamData = <
@@ -499,7 +508,6 @@ object dmDatos: TdmDatos
         ParamType = ptInput
       end>
   end
-
   object qryActualizarStockMovimiento: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -519,7 +527,6 @@ object dmDatos: TdmDatos
         ParamType = ptInput
       end>
   end
-
   object qryListarMovimientosStock: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -536,7 +543,6 @@ object dmDatos: TdmDatos
     Left = 632
     Top = 816
   end
-
   object qryEstructuraMovimientosStock: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -544,7 +550,6 @@ object dmDatos: TdmDatos
     Left = 472
     Top = 888
   end
-
   object qryAgregarIdVentaMovimientos: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -552,7 +557,6 @@ object dmDatos: TdmDatos
     Left = 680
     Top = 888
   end
-
   object qryUltimoIdVenta: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
@@ -560,112 +564,146 @@ object dmDatos: TdmDatos
     Left = 888
     Top = 440
   end
-
-
-
   object qryAuditoriaTrazabilidadResumen: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
       'SELECT'
-      '  (SELECT COUNT(*) FROM VENTAS) AS VentasRevisadas,'
+      '  ('
+      '    SELECT COUNT(*)'
+      '    FROM VENTAS'
+      '    WHERE Trazable = 1'
+      '  ) AS VentasRevisadas,'
+      ''
       '  ('
       '    SELECT COUNT(*)'
       '    FROM VENTAS v'
-      '    WHERE NOT EXISTS ('
-      '      SELECT 1'
-      '      FROM MOVIMIENTOS_STOCK m'
-      '      WHERE m.IdVenta = v.Id'
-      '        AND m.Tipo = ''SALIDA'''
-      '        AND m.Motivo = ''Venta'''
-      '    )'
+      '    WHERE v.Trazable = 1'
+      '      AND NOT EXISTS ('
+      '        SELECT 1'
+      '        FROM MOVIMIENTOS_STOCK m'
+      '        WHERE m.IdVenta = v.Id'
+      '          AND m.Tipo = '#39'SALIDA'#39
+      '          AND m.Motivo = '#39'Venta'#39
+      '      )'
       '  ) AS SinMovimiento,'
+      ''
       '  ('
       '    SELECT COUNT(*)'
       '    FROM ('
       '      SELECT m.IdVenta'
       '      FROM MOVIMIENTOS_STOCK m'
-      '      WHERE m.IdVenta IS NOT NULL'
-      '        AND m.Tipo = ''SALIDA'''
-      '        AND m.Motivo = ''Venta'''
+      '      INNER JOIN VENTAS v'
+      '        ON v.Id = m.IdVenta'
+      '      WHERE v.Trazable = 1'
+      '        AND m.Tipo = '#39'SALIDA'#39
+      '        AND m.Motivo = '#39'Venta'#39
       '      GROUP BY m.IdVenta'
       '      HAVING COUNT(*) > 1'
       '    ) duplicadas'
       '  ) AS Duplicados,'
+      ''
       '  ('
       '    SELECT COUNT(*)'
       '    FROM MOVIMIENTOS_STOCK m'
-      '    LEFT JOIN VENTAS v ON v.Id = m.IdVenta'
+      '    LEFT JOIN VENTAS v'
+      '      ON v.Id = m.IdVenta'
       '    WHERE m.IdVenta IS NOT NULL'
       '      AND v.Id IS NULL'
       '  ) AS Huerfanos,'
+      ''
       '  ('
       '    SELECT COUNT(*)'
       '    FROM MOVIMIENTOS_STOCK m'
-      '    INNER JOIN VENTAS v ON v.Id = m.IdVenta'
-      '    WHERE m.Tipo = ''SALIDA'''
-      '      AND m.Motivo = ''Venta'''
+      '    INNER JOIN VENTAS v'
+      '      ON v.Id = m.IdVenta'
+      '    WHERE v.Trazable = 1'
+      '      AND m.Tipo = '#39'SALIDA'#39
+      '      AND m.Motivo = '#39'Venta'#39
       '      AND m.Cantidad <> -v.Cantidad'
       '  ) AS CantidadesIncoherentes;')
-    Left = 1048
-    Top = 440
+    Left = 968
+    Top = 392
   end
-
   object qryAuditoriaTrazabilidadDetalle: TFDQuery
     Connection = FDConnection1
     SQL.Strings = (
       'SELECT 1 AS Orden,'
-      '       ''SIN_MOVIMIENTO | Venta Id='' || v.Id ||'
-      '       '' | Producto='' || v.CodigoProducto ||'
-      '       '' | Cantidad='' || v.Cantidad AS Detalle'
+      '       '#39'SIN_MOVIMIENTO | Venta Id='#39' || v.Id ||'
+      '       '#39' | Producto='#39' || v.CodigoProducto ||'
+      '       '#39' | Cantidad='#39' || v.Cantidad AS Detalle'
       'FROM VENTAS v'
-      'WHERE NOT EXISTS ('
-      '  SELECT 1'
-      '  FROM MOVIMIENTOS_STOCK m'
-      '  WHERE m.IdVenta = v.Id'
-      '    AND m.Tipo = ''SALIDA'''
-      '    AND m.Motivo = ''Venta'''
-      ')'
+      'WHERE v.Trazable = 1'
+      '  AND NOT EXISTS ('
+      '    SELECT 1'
+      '    FROM MOVIMIENTOS_STOCK m'
+      '    WHERE m.IdVenta = v.Id'
+      '      AND m.Tipo = '#39'SALIDA'#39
+      '      AND m.Motivo = '#39'Venta'#39
+      '  )'
       ''
       'UNION ALL'
       ''
       'SELECT 2 AS Orden,'
-      '       ''DUPLICADO | Venta Id='' || v.Id ||'
-      '       '' | Movimientos automaticos='' || COUNT(m.IdMovimiento)'
+      '       '#39'DUPLICADO | Venta Id='#39' || v.Id ||'
+      '       '#39' | Movimientos automaticos='#39' || COUNT(m.IdMovimiento)'
       '       AS Detalle'
       'FROM VENTAS v'
-      'INNER JOIN MOVIMIENTOS_STOCK m ON m.IdVenta = v.Id'
-      'WHERE m.Tipo = ''SALIDA'''
-      '  AND m.Motivo = ''Venta'''
+      'INNER JOIN MOVIMIENTOS_STOCK m'
+      '  ON m.IdVenta = v.Id'
+      'WHERE v.Trazable = 1'
+      '  AND m.Tipo = '#39'SALIDA'#39
+      '  AND m.Motivo = '#39'Venta'#39
       'GROUP BY v.Id'
       'HAVING COUNT(m.IdMovimiento) > 1'
       ''
       'UNION ALL'
       ''
       'SELECT 3 AS Orden,'
-      '       ''HUERFANO | Movimiento Id='' || m.IdMovimiento ||'
-      '       '' | IdVenta='' || m.IdVenta ||'
-      '       '' | Producto='' || m.CodigoProducto AS Detalle'
+      '       '#39'HUERFANO | Movimiento Id='#39' || m.IdMovimiento ||'
+      '       '#39' | IdVenta='#39' || m.IdVenta ||'
+      '       '#39' | Producto='#39' || m.CodigoProducto AS Detalle'
       'FROM MOVIMIENTOS_STOCK m'
-      'LEFT JOIN VENTAS v ON v.Id = m.IdVenta'
+      'LEFT JOIN VENTAS v'
+      '  ON v.Id = m.IdVenta'
       'WHERE m.IdVenta IS NOT NULL'
       '  AND v.Id IS NULL'
       ''
       'UNION ALL'
       ''
       'SELECT 4 AS Orden,'
-      '       ''CANTIDAD_INCOHERENTE | Venta Id='' || v.Id ||'
-      '       '' | Cantidad venta='' || v.Cantidad ||'
-      '       '' | Movimiento Id='' || m.IdMovimiento ||'
-      '       '' | Cantidad movimiento='' || m.Cantidad AS Detalle'
+      '       '#39'CANTIDAD_INCOHERENTE | Venta Id='#39' || v.Id ||'
+      '       '#39' | Cantidad venta='#39' || v.Cantidad ||'
+      '       '#39' | Movimiento Id='#39' || m.IdMovimiento ||'
+      '       '#39' | Cantidad movimiento='#39' || m.Cantidad AS Detalle'
       'FROM MOVIMIENTOS_STOCK m'
-      'INNER JOIN VENTAS v ON v.Id = m.IdVenta'
-      'WHERE m.Tipo = ''SALIDA'''
-      '  AND m.Motivo = ''Venta'''
+      'INNER JOIN VENTAS v'
+      '  ON v.Id = m.IdVenta'
+      'WHERE v.Trazable = 1'
+      '  AND m.Tipo = '#39'SALIDA'#39
+      '  AND m.Motivo = '#39'Venta'#39
       '  AND m.Cantidad <> -v.Cantidad'
       ''
       'ORDER BY Orden, Detalle;')
-    Left = 1048
+    Left = 912
     Top = 512
   end
-
+  object qryAgregarTrazableVentas: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'ALTER TABLE VENTAS'
+      'ADD COLUMN Trazable INTEGER NOT NULL DEFAULT 0;')
+    Left = 784
+    Top = 96
+  end
+  object qryCrearIndiceUnicoMovimientoVenta: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      
+        '         CREATE UNIQUE INDEX IF NOT EXISTS UX_MOVIMIENTOS_STOCK_' +
+        'IdVenta'
+      'ON MOVIMIENTOS_STOCK(IdVenta)'
+      'WHERE IdVenta IS NOT NULL;')
+    Left = 736
+    Top = 232
+  end
 end
