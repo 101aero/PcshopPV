@@ -1,4 +1,4 @@
-unit principal;
+﻿unit principal;
 
 interface
 
@@ -20,11 +20,15 @@ type
     Acercade1: TMenuItem;
     mnuHistorialVentas: TMenuItem;
     mnuMovimientoStock: TMenuItem;
+    mnuCrearBackup: TMenuItem;
     procedure Gestin2Click(Sender: TObject);
     procedure Clientes1Click(Sender: TObject);
     procedure Clientes2Click(Sender: TObject);
     procedure mnuHistorialVentasClick(Sender: TObject);
     procedure mnuMovimientoStockClick(Sender: TObject);
+    procedure mnuCrearBackupClick(Sender: TObject);
+
+
   private
     { Private declarations }
   public
@@ -38,7 +42,30 @@ implementation
 
 {$R *.dfm}
 
-uses productos;
+uses productos, Datos;
+
+procedure Tfrmprincipal.mnuCrearBackupClick(Sender: TObject);
+var
+  RutaBackup: string;
+begin
+  if dmDatos.CrearBackupManual(RutaBackup) then
+  begin
+    ShowMessage(
+      'Copia de seguridad creada correctamente.' +
+      sLineBreak + sLineBreak +
+      RutaBackup
+    );
+  end
+  else
+  begin
+    ShowMessage(
+      'No se ha podido crear la copia de seguridad.' +
+      sLineBreak + sLineBreak +
+      dmDatos.UltimoError
+    );
+  end;
+end;
+
 
 procedure Tfrmprincipal.Clientes1Click(Sender: TObject);
 var
@@ -63,6 +90,10 @@ procedure Tfrmprincipal.Gestin2Click(Sender: TObject);
 begin
 frmproductos.show;
 end;
+
+
+
+
 
 procedure Tfrmprincipal.mnuHistorialVentasClick(Sender: TObject);
 begin

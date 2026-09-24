@@ -43,6 +43,10 @@ object frmprincipal: Tfrmprincipal
         Caption = 'HistorialVentas'
         OnClick = mnuHistorialVentasClick
       end
+      object mnuCrearBackup: TMenuItem
+        Caption = 'Crear copia de seguridad'
+        OnClick = mnuCrearBackupClick
+      end
     end
     object Informes1: TMenuItem
       Caption = 'Informes'

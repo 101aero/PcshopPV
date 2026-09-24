@@ -11,7 +11,8 @@ uses
   FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Stan.Param, FireDAC.DatS,
   FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta, uCliente,
-  uMovimientoStock;
+  uMovimientoStock, FireDAC.Phys.MSAccDef, FireDAC.Phys.ODBCBase,
+  FireDAC.Phys.MSAcc;
 
 type
   TdmDatos = class(TDataModule)
@@ -53,6 +54,8 @@ type
     qryAuditoriaTrazabilidadDetalle: TFDQuery;
     qryAgregarTrazableVentas: TFDQuery;
     qryCrearIndiceUnicoMovimientoVenta: TFDQuery;
+    FDPhysMSAccessDriverLink1: TFDPhysMSAccessDriverLink;
+    FDSQLiteBackup1: TFDSQLiteBackup;
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
@@ -87,6 +90,8 @@ type
 
 
 public
+
+function CrearBackupManual(out ARutaBackup: string): Boolean;
 
 // MOVIMIENTOS DE STOCK ----------------------------------------------------
 // Registra únicamente la trazabilidad del movimiento.
@@ -262,6 +267,96 @@ begin
 
 end;
 // END-CREATE //
+
+
+
+
+
+// BACKUP
+// *****
+
+function TdmDatos.CrearBackupManual(
+  out ARutaBackup: string
+): Boolean;
+var
+  RutaBD: string;
+  CarpetaBackup: string;
+begin
+  Result := False;
+  ARutaBackup := '';
+  FUltimoError := '';
+
+  RutaBD := FDConnection1.Params.Values['Database'];
+  CarpetaBackup :=
+    IncludeTrailingPathDelimiter(ExtractFilePath(RutaBD)) +
+    'backups';
+
+  try
+    // Creamos la carpeta solo si todavía no existe.
+    if not DirectoryExists(CarpetaBackup) then
+      ForceDirectories(CarpetaBackup);
+
+    ARutaBackup :=
+      IncludeTrailingPathDelimiter(CarpetaBackup) +
+      'pcshop_' +
+      FormatDateTime('yyyy-mm-dd_hhnn', Now) +
+      '.db';
+
+    // Evitamos sobrescribir silenciosamente un backup
+    // creado durante el mismo minuto.
+    if FileExists(ARutaBackup) then
+    begin
+      FUltimoError :=
+        'Ya existe una copia de seguridad con esa fecha y hora.';
+      Exit;
+    end;
+
+    // FireDAC utiliza la API de backup de SQLite.
+    // No hacemos una copia directa del fichero abierto.
+    FDSQLiteBackup1.Database := RutaBD;
+    FDSQLiteBackup1.DestDatabase := ARutaBackup;
+
+    FDSQLiteBackup1.Backup;
+
+    // El backup solo se considera correcto si el fichero
+    // realmente ha sido creado y contiene datos.
+    if not FileExists(ARutaBackup) then
+    begin
+      FUltimoError :=
+        'La copia de seguridad no se ha creado.';
+      Exit;
+    end;
+
+    if TFile.GetSize(ARutaBackup) <= 0 then
+    begin
+      FUltimoError :=
+        'La copia de seguridad creada no es válida.';
+      Exit;
+    end;
+
+RegistrarDiagnostico(
+  'BACKUP SQLITE',
+  'OK | ' + ARutaBackup
+);
+
+    Result := True;
+
+  except
+    on E: Exception do
+    begin
+      FUltimoError :=
+        'No se ha podido crear la copia de seguridad.';
+
+RegistrarDiagnostico(
+  'BACKUP SQLITE',
+  'ERROR | ' + E.Message
+);
+
+      Result := False;
+    end;
+  end;
+end;
+
 
 
 
