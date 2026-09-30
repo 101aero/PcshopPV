@@ -22,12 +22,14 @@ type
     lblTotalVentas: TLabel;
     lblUnidadesVendidas: TLabel;
     lblImporteVentas: TLabel;
+    btnVerTicket: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnBuscarVentaClick(Sender: TObject);
     procedure btnMostrarVentasClick(Sender: TObject);
     procedure cboClienteFiltroChange(Sender: TObject);
+    procedure btnVerTicketClick(Sender: TObject);
 
 
   private
@@ -57,7 +59,18 @@ type
 var
   frmHistorialVentas: TfrmHistorialVentas;
 
+
+
+
+  // *******************************
+  // IMPLEMENTATION
+  //
+  //
+
 implementation
+
+
+
 
 {$R *.dfm}
 
@@ -78,6 +91,49 @@ begin
   grdVentas.Cells[4, 0] := 'Cantidad';
   grdVentas.Cells[5, 0] := 'Precio';
   grdVentas.Cells[6, 0] := 'Total';
+end;
+
+
+
+
+
+procedure TfrmHistorialVentas.btnVerTicketClick(Sender: TObject);
+var
+  Venta: TVenta;
+  TextoCliente: string;
+begin
+  // La fila 0 contiene los encabezados.
+  // Cada fila de datos corresponde al mismo índice de FVentas - 1.
+  if (FVentas.Count = 0) or
+     (grdVentas.Row < 1) or
+     (grdVentas.Row > FVentas.Count) then
+  begin
+    ShowMessage('Selecciona una venta para ver su ticket.');
+    Exit;
+  end;
+
+  Venta := FVentas[grdVentas.Row - 1];
+
+  // En el modelo, IdCliente = 0 representa una venta anónima.
+  if Venta.IdCliente = 0 then
+    TextoCliente := 'Venta anónima'
+  else
+    TextoCliente := Venta.Cliente;
+
+  ShowMessage(
+    'PC SHOP' + sLineBreak +
+    'Ticket de venta' + sLineBreak +
+    '--------------------------------' + sLineBreak +
+    'Venta: #' + IntToStr(Venta.IdVenta) + sLineBreak +
+    'Fecha: ' + Venta.Fecha + sLineBreak +
+    sLineBreak +
+    'Producto: ' + Venta.Producto + sLineBreak +
+    'Cantidad: ' + IntToStr(Venta.Cantidad) + sLineBreak +
+    'Precio: ' + FormatFloat('0.00', Venta.PrecioUnitario) + ' €' + sLineBreak +
+    'Total: ' + FormatFloat('0.00', Venta.Total) + ' €' + sLineBreak +
+    sLineBreak +
+    'Cliente: ' + TextoCliente
+  );
 end;
 
 

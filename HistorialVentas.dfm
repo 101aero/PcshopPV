@@ -1,4 +1,4 @@
-﻿object frmHistorialVentas: TfrmHistorialVentas
+object frmHistorialVentas: TfrmHistorialVentas
   Left = 0
   Top = 0
   Caption = 'Historial de ventas'
@@ -34,14 +34,14 @@
   object grpBusqueda: TGroupBox
     Left = 16
     Top = 49
-    Width = 800
+    Width = 798
     Height = 110
     Anchors = [akLeft, akTop, akRight]
     Caption = 'B'#250'squeda'
     TabOrder = 0
-    ExplicitWidth = 798
+    ExplicitWidth = 796
     DesignSize = (
-      800
+      798
       110)
     object lblBuscar: TLabel
       Left = 16
@@ -50,17 +50,24 @@
       Height = 17
       Caption = 'Buscar:'
     end
+    object lblClienteFiltro: TLabel
+      Left = 16
+      Top = 72
+      Width = 42
+      Height = 17
+      Caption = 'Cliente:'
+    end
     object edtBuscarVenta: TEdit
       Left = 72
       Top = 27
-      Width = 388
+      Width = 386
       Height = 25
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
-      ExplicitWidth = 386
+      ExplicitWidth = 384
     end
     object btnBuscarVenta: TButton
-      Left = 472
+      Left = 470
       Top = 26
       Width = 110
       Height = 27
@@ -68,24 +75,17 @@
       Caption = 'Buscar'
       TabOrder = 1
       OnClick = btnBuscarVentaClick
-      ExplicitLeft = 470
+      ExplicitLeft = 468
     end
     object btnMostrarVentas: TButton
-      Left = 592
+      Left = 590
       Top = 26
       Width = 180
       Height = 27
       Anchors = [akTop, akRight]
       Caption = 'Mostrar todas'
       TabOrder = 2
-      ExplicitLeft = 590
-    end
-    object lblClienteFiltro: TLabel
-      Left = 16
-      Top = 72
-      Width = 45
-      Height = 17
-      Caption = 'Cliente:'
+      ExplicitLeft = 588
     end
     object cboClienteFiltro: TComboBox
       Left = 72
@@ -104,8 +104,8 @@
   object grdVentas: TStringGrid
     Left = 16
     Top = 173
-    Width = 800
-    Height = 249
+    Width = 798
+    Height = 220
     Anchors = [akLeft, akTop, akRight, akBottom]
     ColCount = 7
     DefaultColWidth = 120
@@ -113,19 +113,17 @@
     RowCount = 2
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect]
     TabOrder = 1
-    ExplicitWidth = 798
-    ExplicitHeight = 241
   end
   object grpResumen: TGroupBox
     Left = 16
     Top = 435
-    Width = 800
+    Width = 798
     Height = 60
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Resumen comercial'
     TabOrder = 2
     ExplicitTop = 427
-    ExplicitWidth = 798
+    ExplicitWidth = 796
     object lblTotalVentas: TLabel
       Left = 18
       Top = 28
@@ -165,5 +163,15 @@
       Font.Style = [fsBold]
       ParentFont = False
     end
+  end
+  object btnVerTicket: TButton
+    Left = 576
+    Top = 410
+    Width = 238
+    Height = 27
+    Anchors = [akTop, akRight]
+    Caption = 'Ticket'
+    TabOrder = 3
+    OnClick = btnVerTicketClick
   end
 end
