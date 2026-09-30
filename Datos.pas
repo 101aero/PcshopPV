@@ -12,7 +12,7 @@ uses
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Stan.Param, FireDAC.DatS,
   FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, uVenta, uCliente,
   uMovimientoStock, FireDAC.Phys.MSAccDef, FireDAC.Phys.ODBCBase,
-  FireDAC.Phys.MSAcc;
+  FireDAC.Phys.MSAcc, FireDAC.Phys.SQLiteWrapper;
 
 type
   TdmDatos = class(TDataModule)
@@ -56,9 +56,36 @@ type
     qryCrearIndiceUnicoMovimientoVenta: TFDQuery;
     FDPhysMSAccessDriverLink1: TFDPhysMSAccessDriverLink;
     FDSQLiteBackup1: TFDSQLiteBackup;
+    FDSQLiteValidate1: TFDSQLiteValidate;
     procedure DataModuleCreate(Sender: TObject);
+
+   procedure FDSQLiteValidate1Progress(
+  ASender: TFDPhysDriverService;
+  const AMessage: string
+);
+
+
+  function ValidarBaseSQLite(
+  const ARutaBD: string;
+  out AError: string
+): Boolean;
+
+
+procedure CerrarBaseParaRestauracion;
+
+procedure AbrirBaseTrasRestauracion;  // ? AÑADIR AQUÍ
+
+function RestaurarBaseSQLite(
+  const ARutaBackup: string;
+  out AError: string
+): Boolean;
+
+    //**********
+
   private
     { Private declarations }
+    FErrorValidacionSQLite: string;
+
   FUltimoError: string;
 
   // Comprueba la estructura real de VENTAS y aplica únicamente
@@ -208,6 +235,8 @@ function ActualizarProducto(const AProducto: TProducto): Boolean;
   function InsertarProducto(const AProducto: TProducto): Boolean;
   end;
 
+
+
 var
   dmDatos: TdmDatos;
 
@@ -270,6 +299,206 @@ end;
 
 
 
+
+procedure TdmDatos.AbrirBaseTrasRestauracion;
+begin
+  // La ruta de pcshop.db ya sigue configurada
+  // en FDConnection1. Solo reabrimos la conexión.
+  if not FDConnection1.Connected then
+    FDConnection1.Connected := True;
+
+  // Comprobamos que las tablas base existan.
+  qryProductos.ExecSQL;
+
+  qryCrearTablaVentas.ExecSQL;
+
+  // Si el backup procede de una versión anterior,
+  // aplicamos las migraciones necesarias.
+  MigrarEsquemaVentas;
+
+  qryCrearTablaClientes.ExecSQL;
+
+  qryCrearTablaMovimientosStock.ExecSQL;
+
+  MigrarEsquemaMovimientosStock;
+
+  // Recuperamos también las protecciones actuales
+  // de integridad del esquema.
+  qryCrearIndiceUnicoMovimientoVenta.ExecSQL;
+end;
+
+
+
+
+
+
+// RESTAURAR
+    function TdmDatos.RestaurarBaseSQLite(
+  const ARutaBackup: string;
+  out AError: string
+): Boolean;
+var
+  RutaBD: string;
+  ErrorValidacion: string;
+begin
+  Result := False;
+  AError := '';
+
+  try
+    // Obtenemos la ruta de la base de datos real de PC Shop.
+    RutaBD := FDConnection1.Params.Values['Database'];
+
+    if RutaBD = '' then
+      raise Exception.Create(
+        'No se ha podido determinar la ruta de pcshop.db.'
+      );
+
+    if not FileExists(ARutaBackup) then
+      raise Exception.Create(
+        'La copia de seguridad seleccionada no existe.'
+      );
+
+    // pcshop.db no debe estar abierto mientras restauramos.
+    CerrarBaseParaRestauracion;
+
+    // El backup seleccionado pasa a ser el origen.
+    // pcshop.db es el destino que queremos restaurar.
+    FDSQLiteBackup1.Database := ARutaBackup;
+    FDSQLiteBackup1.DestDatabase := RutaBD;
+    FDSQLiteBackup1.DestMode := smCreate;
+
+    FDSQLiteBackup1.Backup;
+
+    // Comprobamos también el resultado escrito en pcshop.db,
+    // no solamente el archivo de backup original.
+    if not ValidarBaseSQLite(RutaBD, ErrorValidacion) then
+      raise Exception.Create(
+        'La base restaurada no supera la comprobación de integridad.' +
+        sLineBreak +
+        ErrorValidacion
+      );
+
+    // Reabrimos la base y aplicamos las migraciones actuales.
+    AbrirBaseTrasRestauracion;
+
+    RegistrarDiagnostico(
+      'RESTAURAR SQLITE',
+      'OK | ' + ARutaBackup + ' -> ' + RutaBD
+    );
+
+    Result := True;
+
+  except
+    on E: Exception do
+    begin
+      AError := E.Message;
+
+      RegistrarDiagnostico(
+        'RESTAURAR SQLITE',
+        'ERROR | ' + ARutaBackup + ' | ' + E.Message
+      );
+
+      // Intentamos dejar nuevamente operativa la conexión.
+      try
+        if not FDConnection1.Connected then
+          FDConnection1.Connected := True;
+      except
+        on EConexion: Exception do
+          AError :=
+            AError +
+            sLineBreak + sLineBreak +
+            'Además, no se ha podido reabrir la base de datos:' +
+            sLineBreak +
+            EConexion.Message;
+      end;
+    end;
+  end;end;
+
+
+
+function TdmDatos.ValidarBaseSQLite(
+  const ARutaBD: string;
+  out AError: string
+): Boolean;
+begin
+  Result := False;
+  AError := '';
+  FErrorValidacionSQLite := '';
+
+  try
+    if not FileExists(ARutaBD) then
+    begin
+      AError := 'El archivo seleccionado no existe.';
+      Exit;
+    end;
+
+    if TFile.GetSize(ARutaBD) <= 0 then
+    begin
+      AError := 'El archivo seleccionado está vacío.';
+      Exit;
+    end;
+
+    FDSQLiteValidate1.Database := ARutaBD;
+
+    // CheckOnly ejecuta una comprobación de integridad
+    // sin intentar reparar ni modificar la base.
+    Result := FDSQLiteValidate1.CheckOnly;
+
+    if not Result then
+    begin
+      if FErrorValidacionSQLite <> '' then
+        AError := FErrorValidacionSQLite
+      else
+        AError := 'SQLite ha detectado problemas en la base de datos.';
+    end;
+
+  except
+    on E: Exception do
+    begin
+      Result := False;
+      AError := E.Message;
+
+      RegistrarDiagnostico(
+        'VALIDAR SQLITE',
+        'ERROR | ' + ARutaBD + ' | ' + E.Message
+      );
+    end;
+  end;
+end;
+
+
+procedure TdmDatos.CerrarBaseParaRestauracion;
+begin
+  // No restauramos una base mientras exista
+  // una transacción activa.
+  if FDConnection1.InTransaction then
+    raise Exception.Create(
+      'No se puede restaurar mientras exista una transacción activa.'
+    );
+
+  // Liberamos pcshop.db antes de sustituirlo.
+  if FDConnection1.Connected then
+    FDConnection1.Close;
+end;
+
+
+procedure TdmDatos.FDSQLiteValidate1Progress(
+  ASender: TFDPhysDriverService;
+  const AMessage: string
+);
+begin
+  // Guardamos únicamente los mensajes de problema.
+  // CheckOnly devuelve True cuando la base es íntegra.
+  if not SameText(Trim(AMessage), 'ok') then
+  begin
+    if FErrorValidacionSQLite <> '' then
+      FErrorValidacionSQLite :=
+        FErrorValidacionSQLite + sLineBreak;
+
+    FErrorValidacionSQLite :=
+      FErrorValidacionSQLite + AMessage;
+  end;
+end;
 
 
 // BACKUP

@@ -47,6 +47,10 @@ object frmprincipal: Tfrmprincipal
         Caption = 'Crear copia de seguridad'
         OnClick = mnuCrearBackupClick
       end
+      object mnuRestaurarBackup: TMenuItem
+        Caption = 'Restaurar copia de seguridad'
+        OnClick = mnuRestaurarBackupClick
+      end
     end
     object Informes1: TMenuItem
       Caption = 'Informes'
@@ -57,5 +61,11 @@ object frmprincipal: Tfrmprincipal
         Caption = 'Acerca de...'
       end
     end
+  end
+  object dlgRestaurarBackup: TOpenDialog
+    Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    Title = 'Seleccionar copia de seguridad de PC Shop'
+    Left = 256
+    Top = 136
   end
 end

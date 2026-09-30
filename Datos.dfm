@@ -717,4 +717,10 @@ object dmDatos: TdmDatos
     Left = 616
     Top = 56
   end
+  object FDSQLiteValidate1: TFDSQLiteValidate
+    DriverLink = FDPhysSQLiteDriverLink1
+    OnProgress = FDSQLiteValidate1Progress
+    Left = 248
+    Top = 600
+  end
 end
