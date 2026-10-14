@@ -1,6 +1,3 @@
-Sí. Ese README ya está **muy por detrás del estado real de `pcshopPV`**. Yo no lo iría parcheando: ahora que `pcshopPV` es el repositorio público principal, lo sustituiría por uno que presente PC Shop como aplicación real y no como el CRUD de agosto.
-
-Te propongo este README completo, listo para sustituir el actual:
 
 ```markdown
 # PC Shop
