@@ -1,12 +1,42 @@
+Sí. Ese README ya está **muy por detrás del estado real de `pcshopPV`**. Yo no lo iría parcheando: ahora que `pcshopPV` es el repositorio público principal, lo sustituiría por uno que presente PC Shop como aplicación real y no como el CRUD de agosto.
+
+Te propongo este README completo, listo para sustituir el actual:
+
+```markdown
 # PC Shop
 
-Aplicación de gestión de productos desarrollada con **Delphi 12.1 Community Edition**, **VCL**, **FireDAC** y **SQLite**.
+Aplicación de escritorio para **TPV y gestión sencilla de pequeños comercios**, desarrollada con **Delphi 12.1 Community Edition**, **Object Pascal**, **VCL**, **FireDAC** y **SQLite**.
 
-El proyecto forma parte de **InformatOLI** y tiene como objetivo desarrollar una aplicación de escritorio sencilla pero estructurada, aplicando técnicas utilizadas en proyectos Delphi reales.
+PC Shop forma parte del portfolio técnico de **InformatOLI** y evoluciona como una aplicación real: persistencia, ventas, clientes, inventario, trazabilidad, mantenimiento de datos, copias de seguridad y recuperación.
+
+> El objetivo no es construir una colección de ejercicios Delphi, sino evolucionar una aplicación Windows funcional y mantenible.
 
 ---
 
-## Tecnologías
+## 🚀 Estado actual
+
+PC Shop dispone actualmente de:
+
+- gestión persistente de productos;
+- gestión de clientes;
+- ventas;
+- control de stock;
+- movimientos de inventario;
+- trazabilidad entre ventas y movimientos;
+- auditoría de inconsistencias;
+- migraciones de esquema SQLite;
+- logging técnico;
+- copias de seguridad;
+- restauración controlada;
+- historial y resumen de ventas;
+- filtros y búsquedas;
+- primera versión funcional de ticket de venta.
+
+El proyecto continúa en desarrollo.
+
+---
+
+## 🛠️ Tecnologías
 
 - Delphi 12.1 Community Edition
 - Object Pascal
@@ -15,32 +45,61 @@ El proyecto forma parte de **InformatOLI** y tiene como objetivo desarrollar una
 - SQLite
 - SQL
 - Programación orientada a objetos
-- `TObjectList<TProducto>`
+- `TObjectList<T>`
+- Transacciones
+- Migraciones de esquema
+- Logging
 - Git / GitHub
 
 ---
 
-## Estado actual
+# 🧱 Arquitectura
 
-PC Shop permite gestionar productos utilizando los campos:
+PC Shop mantiene separadas la interfaz, el modelo de dominio y la persistencia:
 
-- Código
-- Nombre
-- Precio
-- Stock
+```text
+Usuario
+   ↓
+VCL
+   ↓
+Objetos de dominio
+   ↓
+Data Module
+   ↓
+FireDAC
+   ↓
+SQLite
+```
 
-La aplicación utiliza una base de datos SQLite local (`pcshop.db`) y dispone de **CRUD persistente completo** y **búsqueda por Código o Nombre**.
+El formulario no ejecuta directamente las sentencias SQL principales.
+
+La lógica de persistencia se centraliza en el Data Module.
+
+Entre los objetos utilizados se encuentran:
+
+```text
+TProducto
+TCliente
+TVenta
+TMovimientoStock
+```
 
 ---
 
-## CRUD de PRODUCTOS
+# 📦 Productos
 
-Actualmente están implementadas las cuatro operaciones principales:
+La gestión de productos utiliza:
 
-- **CREATE** → alta mediante `INSERT` parametrizado.
-- **READ** → recuperación mediante `SELECT`.
-- **UPDATE** → edición mediante `UPDATE` parametrizado.
-- **DELETE** → eliminación mediante `DELETE` parametrizado.
+```text
+Codigo
+Nombre
+Precio
+Stock
+```
+
+`Codigo` actúa como identificador del producto.
+
+Está implementado el CRUD persistente completo:
 
 ```text
 CREATE  ✅
@@ -49,19 +108,9 @@ UPDATE  ✅
 DELETE  ✅
 ```
 
-Los cambios permanecen almacenados después de cerrar y volver a ejecutar PC Shop.
+Las operaciones utilizan SQL parametrizado mediante FireDAC.
 
----
-
-## Búsqueda de productos
-
-La aplicación permite filtrar productos por:
-
-- Código.
-- Nombre completo.
-- Parte del nombre.
-
-La búsqueda se realiza mediante un `TFDQuery` específico en el Data Module y una consulta SQL parametrizada:
+Ejemplo de búsqueda:
 
 ```sql
 SELECT Codigo, Nombre, Precio, Stock
@@ -71,327 +120,452 @@ WHERE Codigo LIKE :Busqueda
 ORDER BY Codigo;
 ```
 
-El criterio introducido por el usuario se convierte en un patrón:
+También están implementados:
 
-```text
-tecl
- ↓
-%tecl%
-```
-
-y se asigna mediante FireDAC:
-
-```pascal
-qryBuscarProductos.ParamByName('Busqueda').AsString :=
-  '%' + Trim(ABusqueda) + '%';
-```
-
-De esta forma, el contenido del `TEdit` no se concatena directamente dentro del SQL.
-
-Los resultados de la consulta se transforman nuevamente en objetos `TProducto`, se incorporan a `FProductos` y el `TStringGrid` se reconstruye desde la colección.
+- búsqueda por código;
+- búsqueda por nombre;
+- búsqueda parcial mediante `LIKE`;
+- control de códigos duplicados;
+- filtro de stock bajo;
+- cálculo del valor total del inventario;
+- validaciones;
+- recuperación automática de datos al iniciar.
 
 ---
 
-## Funcionalidades implementadas
+# 👤 Clientes
 
-- Alta de productos.
-- Edición de productos existentes.
-- Eliminación persistente.
-- Validación de datos.
-- Control de códigos duplicados.
-- Selección mediante `TStringGrid`.
-- Modelo `TProducto`.
-- Gestión mediante `TObjectList<TProducto>`.
-- Base de datos SQLite.
-- Conexión mediante FireDAC.
-- `INSERT` parametrizado.
-- `SELECT` de productos.
-- `UPDATE` parametrizado.
-- `DELETE` parametrizado.
-- Uso de `RowsAffected`.
-- Recuperación automática de productos al iniciar la aplicación.
-- Búsqueda por Código o Nombre.
-- Búsqueda parcial mediante `LIKE`.
-- Botón para recuperar de nuevo todos los productos.
-- Separación del acceso a datos mediante Data Module.
-- Persistencia entre ejecuciones.
-- Reutilización de la lógica de carga de productos.
+PC Shop incorpora una entidad independiente para clientes.
+
+Datos principales:
+
+```text
+IdCliente
+Nombre
+Email
+Telefono
+```
+
+`IdCliente` utiliza:
+
+```sql
+INTEGER PRIMARY KEY AUTOINCREMENT
+```
+
+Está implementado:
+
+- alta;
+- consulta;
+- modificación;
+- eliminación;
+- búsqueda por nombre;
+- búsqueda por email;
+- búsqueda por teléfono.
+
+Los clientes se relacionan con las ventas mediante `IdCliente`.
+
+Las ventas pueden continuar siendo anónimas.
 
 ---
 
-## Arquitectura
+# 🛒 Ventas
 
-La aplicación mantiene separadas la interfaz, el modelo y la persistencia.
+Las ventas se almacenan persistentemente en SQLite.
+
+Una venta incluye información como:
 
 ```text
-Usuario
+Id
+Fecha
+CodigoProducto
+Cantidad
+PrecioUnitario
+Total
+IdCliente
+```
+
+La aplicación dispone de:
+
+- registro de ventas;
+- actualización automática del stock;
+- comprobación de stock disponible;
+- historial de ventas;
+- búsqueda;
+- filtro por cliente;
+- soporte para ventas anónimas;
+- resumen de ventas;
+- número de operaciones;
+- unidades vendidas;
+- importe total.
+
+La relación con clientes se mantiene mediante identificadores, evitando duplicar nombres dentro de `VENTAS`.
+
+---
+
+# 🔄 Transacciones
+
+Una venta no se trata como una sucesión de operaciones independientes.
+
+Actualmente el flujo incluye:
+
+```text
+BEGIN TRANSACTION
+        ↓
+INSERT VENTA
+        ↓
+obtener IdVenta
+        ↓
+UPDATE PRODUCTOS.Stock
+        ↓
+INSERT MOVIMIENTOS_STOCK
+        ↓
+COMMIT
+```
+
+Si una operación falla:
+
+```text
+ROLLBACK
+```
+
+De esta forma se evita terminar con situaciones como:
+
+```text
+Venta registrada        ✅
+Stock actualizado       ❌
+```
+
+o:
+
+```text
+Stock actualizado       ✅
+Movimiento registrado   ❌
+```
+
+---
+
+# 📊 Movimientos de stock
+
+PC Shop dispone de una entidad `MOVIMIENTOS_STOCK` para explicar cómo cambia el inventario.
+
+Tipos:
+
+```text
+ENTRADA
+SALIDA
+AJUSTE
+```
+
+La cantidad representa siempre la variación:
+
+```text
+ENTRADA +5
+SALIDA  -2
+AJUSTE  +3
+AJUSTE  -1
+```
+
+Regla:
+
+```text
+StockNuevo = StockActual + Cantidad
+```
+
+Los movimientos pueden ser:
+
+### Manuales
+
+```text
+IdVenta = NULL
+```
+
+### Generados por una venta
+
+```text
+Tipo     = SALIDA
+Cantidad = -CantidadVendida
+Motivo   = Venta
+IdVenta  = identificador real
+```
+
+El identificador de la venta se recupera desde SQLite mediante:
+
+```sql
+SELECT last_insert_rowid();
+```
+
+utilizando la misma conexión FireDAC.
+
+---
+
+# 🔍 Auditoría de trazabilidad
+
+Además de registrar movimientos, PC Shop puede comprobar la coherencia entre ventas e inventario.
+
+La auditoría permite detectar:
+
+- ventas sin movimiento;
+- más de un movimiento asociado a una venta;
+- movimientos asociados a ventas inexistentes;
+- diferencias entre cantidad vendida y salida de stock.
+
+Ejemplo:
+
+```text
+VENTAS.Cantidad = 3
+
+debe corresponder con:
+
+MOVIMIENTOS_STOCK.Cantidad = -3
+```
+
+Las incidencias detectadas utilizan el sistema de logging ya existente.
+
+---
+
+# 🕰️ Compatibilidad con datos históricos
+
+Durante la incorporación de la trazabilidad apareció un problema real de mantenimiento:
+
+las ventas creadas antes de existir `MOVIMIENTOS_STOCK` no disponían de movimiento asociado.
+
+Eso no significaba que fueran datos incorrectos.
+
+Para distinguir datos históricos de ventas sometidas a las nuevas reglas se incorporó:
+
+```sql
+Trazable INTEGER NOT NULL DEFAULT 0
+```
+
+Interpretación:
+
+```text
+Trazable = 0
+→ venta histórica
+
+Trazable = 1
+→ venta creada con el sistema moderno
+→ debe cumplir trazabilidad
+```
+
+Así se evita modificar artificialmente el histórico.
+
+---
+
+# 🔧 Migraciones de esquema
+
+PC Shop debe poder evolucionar sin eliminar las bases existentes.
+
+Para comprobar la estructura real se utiliza:
+
+```sql
+PRAGMA table_info(VENTAS);
+```
+
+y cuando es necesario se aplican migraciones mediante `ALTER TABLE`.
+
+Ejemplo:
+
+```sql
+ALTER TABLE VENTAS
+ADD COLUMN Trazable INTEGER NOT NULL DEFAULT 0;
+```
+
+Esto permite evolucionar instalaciones existentes conservando los datos.
+
+Una conclusión importante del proyecto ha sido:
+
+> `CREATE TABLE IF NOT EXISTS` crea tablas nuevas, pero no actualiza automáticamente la estructura de tablas que ya existen.
+
+Por eso PC Shop incorpora migraciones explícitas.
+
+---
+
+# 🛡️ Integridad desde SQLite
+
+Parte de las reglas también se protege desde la propia base de datos.
+
+Para impedir que una venta termine accidentalmente asociada a más de un movimiento se utiliza un índice `UNIQUE` parcial:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS UX_MOVIMIENTOS_STOCK_IdVenta
+ON MOVIMIENTOS_STOCK(IdVenta)
+WHERE IdVenta IS NOT NULL;
+```
+
+Esto permite:
+
+```text
+Movimientos manuales
+IdVenta = NULL
+→ múltiples movimientos
+
+Movimientos de venta
+IdVenta = valor real
+→ uno por venta
+```
+
+La integridad se plantea mediante varias capas:
+
+```text
+Lógica Delphi
+      +
+Transacciones
+      +
+Auditoría
+      +
+Restricciones SQLite
+      ↓
+Mayor consistencia de los datos
+```
+
+---
+
+# 💾 Copias de seguridad
+
+PC Shop incorpora copia de seguridad manual de SQLite mediante:
+
+```text
+TFDSQLiteBackup
+```
+
+No se realiza una simple copia directa de `pcshop.db` mientras la base permanece abierta.
+
+Flujo:
+
+```text
+PC Shop
    ↓
-VCL
-   ↓
-Productos.pas
-   ↓
-TProducto / FProductos
+Crear copia de seguridad
    ↓
 Data Module
    ↓
-FireDAC
+TFDSQLiteBackup
    ↓
-SQLite
+backups\
+   ↓
+pcshop_AAAA-MM-DD_HHMM.db
 ```
 
-El formulario no ejecuta directamente sentencias SQL.
+La aplicación:
 
-Las operaciones de persistencia y búsqueda se delegan al Data Module.
+- crea la carpeta `backups` si es necesario;
+- utiliza fecha y hora en el nombre;
+- evita sobrescrituras silenciosas;
+- comprueba que el fichero ha sido generado;
+- comprueba que su tamaño sea mayor que cero;
+- informa al usuario;
+- registra éxito o error en el log.
 
 ---
 
-## Base de datos
+# ♻️ Restauración de copias
 
-Tabla principal:
+También está implementada la restauración manual y controlada de bases SQLite.
+
+El flujo incluye:
 
 ```text
-PRODUCTOS
+Seleccionar backup
+       ↓
+Validar
+       ↓
+Backup preventivo de la base actual
+       ↓
+Confirmación
+       ↓
+Cerrar conexión FireDAC
+       ↓
+Restaurar
+       ↓
+Validar base restaurada
+       ↓
+Reabrir conexión
+       ↓
+Aplicar migraciones
 ```
 
-Campos:
+Se utilizan componentes específicos de FireDAC como:
 
 ```text
-Codigo
-Nombre
-Precio
-Stock
+TFDSQLiteBackup
+TFDSQLiteValidate
 ```
 
-`Codigo` se mantiene como clave primaria e identificador del producto.
+El objetivo es que la restauración sea:
 
-Las operaciones SQL utilizan parámetros FireDAC en lugar de concatenar directamente valores introducidos por el usuario.
+- recuperable;
+- verificable;
+- compatible con versiones anteriores del esquema.
 
 ---
 
-## Flujo de persistencia
+# 🧾 Ticket de venta
 
-### Alta
+PC Shop dispone también de una primera versión funcional del ticket.
+
+Flujo:
 
 ```text
-Formulario
-   ↓
-TProducto
-   ↓
-INSERT
-   ↓
-SQLite
+Historial de ventas
+        ↓
+seleccionar venta
+        ↓
+Ver ticket
 ```
 
-### Lectura
+El ticket utiliza el objeto `TVenta` asociado a la venta seleccionada y muestra:
+
+- Id de venta;
+- fecha;
+- producto;
+- cantidad;
+- precio unitario;
+- total;
+- cliente;
+- venta anónima cuando no existe cliente asociado.
+
+Actualmente es una primera versión funcional.
+
+Todavía no incluye:
+
+- PDF;
+- impresión;
+- diseño fiscal completo;
+- configuración avanzada del negocio.
+
+Estas áreas forman parte de la evolución prevista.
+
+---
+
+# 🔎 Logging y diagnóstico
+
+PC Shop mantiene un registro técnico:
 
 ```text
-SQLite
-   ↓
-SELECT
-   ↓
-TProducto
-   ↓
-FProductos
-   ↓
-TStringGrid
+logs\pcshop.log
 ```
 
-### Edición
+Se utiliza para registrar distintas operaciones e incidencias de la aplicación.
 
-```text
-Producto seleccionado
-   ↓
-TProducto
-   ↓
-UPDATE
-   ↓
-RowsAffected
-   ↓
-SQLite
-```
+También se reutiliza desde funcionalidades como:
 
-### Eliminación
+- auditoría de inventario;
+- copias de seguridad;
+- restauración;
+- diagnóstico de errores.
 
-```text
-Producto seleccionado
-   ↓
-DELETE parametrizado
-   ↓
-SQLite
-   ↓
-RowsAffected
-   ↓
-FProductos
-   ↓
-TStringGrid
-```
-
-### Búsqueda
-
-```text
-Usuario
-   ↓
-edtBusqueda
-   ↓
-Productos.pas
-   ↓
-dmDatos.BuscarProductos
-   ↓
-TFDQuery
-   ↓
-SQL parametrizado + LIKE
-   ↓
-SQLite
-   ↓
-TProducto
-   ↓
-FProductos
-   ↓
-TStringGrid
-```
+El objetivo es evitar crear sistemas de logging distintos para cada módulo.
 
 ---
 
-## Problemas resueltos durante el desarrollo
+# 📁 Base de datos portable
 
-Durante el desarrollo se han diagnosticado y corregido diferentes incidencias reales:
+La ruta de `pcshop.db` se calcula a partir de la ubicación de la aplicación en lugar de depender de una ruta absoluta de un equipo concreto.
 
-- Duplicación accidental de productos en `FProductos`.
-- Error de visualización entre Precio y Stock.
-- Bloqueos de SQLite.
-- Error `F2039` al permanecer `pcshop.exe` abierto.
-- Access Violation por utilizar el Data Module antes de su creación.
-- Corrección del orden de Auto-create forms.
-- Diferenciación entre modificar un objeto en memoria y persistir realmente el cambio.
-- Uso de `RowsAffected` para comprobar operaciones SQL.
-- Error `Parameter 'Codigo' not found` debido a un parámetro SQL incorrecto.
-- Error `List index out of bounds` provocado por eliminar dos veces el mismo elemento de `FProductos`.
-- Error `unable to open database file` provocado por una ruta absoluta de `pcshop.db` procedente de otro equipo.
-- Comprobación del CRUD completo después de incorporar nuevas funcionalidades.
+Esto permite mover el proyecto entre diferentes instalaciones sin mantener rutas específicas del equipo de desarrollo.
 
----
-
-## Diario de desarrollo
-
-### AGOSTO — Semana 1
-
-Se desarrolla la gestión inicial de productos en memoria.
-
-Se incorporan:
-
-- `TProducto`.
-- `TObjectList<TProducto>`.
-- Alta.
-- Edición.
-- Eliminación.
-- Selección mediante grid.
-- Validaciones.
-- Control de duplicados.
-- Separación entre colección y representación visual.
-
-**Semana completada: 4/4 jornadas.**
-
----
-
-### AGOSTO — Semana 2
-
-Se incorpora la persistencia mediante SQLite y FireDAC.
-
-Se implementan:
-
-- Conexión SQLite.
-- Tabla `PRODUCTOS`.
-- `INSERT` parametrizado.
-- `SELECT`.
-- Reconstrucción de objetos desde la base de datos.
-- `UPDATE` parametrizado.
-- Data Module para separar persistencia e interfaz.
-- Depuración de errores relacionados con FireDAC, SQLite y ciclo de vida de formularios.
-
-**Semana completada: 4/4 jornadas.**
-
----
-
-### AGOSTO — Semana 3
-
-La semana se orienta a consolidar el CRUD y comenzar a construir funcionalidades sobre una arquitectura más mantenible.
-
-#### Jornada 1 — DELETE persistente
-
-- `DELETE` parametrizado.
-- Comprobación mediante `RowsAffected`.
-- Sincronización entre SQLite, `FProductos` y `TStringGrid`.
-- Depuración de errores en parámetros SQL y gestión de la colección.
-
-#### Jornada 2 — Validación completa del CRUD
-
-- Consolidación de `INSERT`, `SELECT`, `UPDATE` y `DELETE`.
-- `Codigo` se mantiene como clave primaria inmutable.
-- SQL centralizado en el Data Module.
-- Validación completa mediante cierre y reapertura de la aplicación.
-
-#### Jornada 3 — Refactorización de la capa de datos
-
-- Revisión de responsabilidades.
-- Mejora de la organización del Data Module.
-- Uso de `try/finally`.
-- Comprobación mediante `RowsAffected`.
-- Métodos con resultados `Boolean`.
-- Mayor separación entre formulario y persistencia.
-
-#### Jornada 4 — Búsqueda parametrizada
-
-- `edtBusqueda`.
-- `btnBuscarFiltro`.
-- `btnMostrarTodos`.
-- `qryBuscarProductos`.
-- `SELECT` con `LIKE`.
-- Parámetro `:Busqueda`.
-- Búsqueda por Código o Nombre.
-- Búsqueda parcial.
-- Conversión de cada fila SQL en `TProducto`.
-- Reutilización de `CargarProductos`.
-- Prueba completa del CRUD después de incorporar el filtro.
-
-**Semana completada: 4/4 jornadas. ✅**
-
----
-
-## Competencias trabajadas
-
-PC Shop sirve como proyecto de portfolio para practicar y demostrar competencias relacionadas con:
-
-- Delphi.
-- Object Pascal.
-- VCL.
-- Aplicaciones Windows.
-- FireDAC.
-- SQLite.
-- SQL.
-- SQL parametrizado.
-- Bases de datos relacionales.
-- CRUD.
-- Persistencia.
-- Programación orientada a objetos.
-- Gestión de colecciones.
-- Separación de responsabilidades.
-- Data Modules.
-- Mantenimiento de código existente.
-- Refactorización.
-- Depuración.
-- Resolución de errores.
-- Organización de aplicaciones.
-- Git y GitHub.
-
----
-
-## Próximos objetivos
-
-El siguiente objetivo es mejorar la portabilidad de la aplicación.
-
-Actualmente se ha detectado que una ruta absoluta hacia `pcshop.db` puede impedir que PC Shop funcione correctamente al copiar el proyecto a otro ordenador.
-
-La evolución prevista es utilizar una ubicación relativa a la aplicación:
+Conceptualmente:
 
 ```text
 PC Shop
@@ -400,31 +574,143 @@ PC Shop
 └── pcshop.db
 ```
 
-Esto facilitará ejecutar el proyecto en:
+---
 
-- PC de desarrollo.
-- Portátil.
-- Otro equipo Windows.
-- Repositorio clonado.
+# 🧠 Problemas reales resueltos
 
-Después se continuará con nuevas mejoras funcionales y de arquitectura.
+Durante el desarrollo se han diagnosticado y corregido incidencias como:
+
+- parámetros FireDAC incorrectos;
+- duplicación accidental de objetos;
+- diferencias entre memoria y persistencia;
+- SQLite bloqueado;
+- Access Violation por ciclo de vida del Data Module;
+- orden incorrecto de creación de formularios;
+- eliminación duplicada de objetos;
+- rutas SQLite absolutas;
+- ejecutable bloqueado durante compilación;
+- desincronización entre DFM y PAS;
+- eventos VCL sin implementación asociada;
+- consultas activadas desde Designer antes de configurar la conexión real;
+- evolución de migraciones existentes al incorporar nuevas columnas.
+
+Estas incidencias forman parte del objetivo del proyecto: practicar no solo desarrollo nuevo, sino también diagnóstico y mantenimiento de aplicaciones existentes.
 
 ---
 
-## Estado del proyecto
+# 🎯 Competencias trabajadas
 
-**CRUD persistente de PRODUCTOS completado. ✅**
+PC Shop sirve como proyecto de portfolio para trabajar y demostrar:
 
-**Búsqueda parametrizada por Código o Nombre completada. ✅**
-
-**AGOSTO — Semana 3 completada: 4/4 jornadas. ✅**
-
-Próximo hito:
-
-**Eliminar la dependencia de rutas absolutas para `pcshop.db` y mejorar la portabilidad de PC Shop.**
+- Delphi / Object Pascal
+- VCL
+- Aplicaciones Windows
+- FireDAC
+- SQLite
+- SQL relacional
+- SQL parametrizado
+- CRUD
+- Programación orientada a objetos
+- Data Modules
+- Transacciones
+- COMMIT / ROLLBACK
+- Integridad de datos
+- Migraciones de esquema
+- Compatibilidad con datos históricos
+- Índices
+- Auditoría
+- Logging
+- Copias de seguridad
+- Recuperación de datos
+- Gestión de errores
+- Mantenimiento de aplicaciones existentes
+- Depuración
+- Git / GitHub
 
 ---
 
-## InformatOLI
+# 🗺️ Próximas líneas de evolución
+
+Entre las siguientes áreas previstas se encuentran:
+
+- configuración persistente del negocio;
+- evolución visual del ticket;
+- generación de tickets en PDF;
+- impresión;
+- exportación CSV / Excel;
+- estadísticas;
+- mejora de interfaz;
+- pruebas automatizadas;
+- instalador;
+- nuevas mejoras de rendimiento y mantenibilidad.
+
+El roadmap puede adaptarse según el estado real del proyecto y las competencias profesionales que resulte útil incorporar.
+
+---
+
+# 📚 Filosofía del proyecto
+
+PC Shop comenzó trabajando conceptos básicos de gestión de productos, pero el objetivo actual es evolucionarlo como una aplicación mantenible.
+
+La progresión puede resumirse así:
+
+```text
+CRUD
+  ↓
+Persistencia
+  ↓
+Clientes
+  ↓
+Ventas
+  ↓
+Stock
+  ↓
+Trazabilidad
+  ↓
+Auditoría
+  ↓
+Migraciones
+  ↓
+Backup / restauración
+  ↓
+Ticket
+  ↓
+TPV más completo
+```
+
+Un CRUD permite demostrar que se pueden insertar, modificar, consultar y eliminar datos.
+
+PC Shop intenta avanzar un paso más:
+
+> evolucionar una aplicación que ya contiene información, mantener compatibilidad con datos existentes y añadir nuevas funcionalidades sin romper lo anterior.
+
+---
+
+# 🌐 InformatOLI
+
+Proyecto desarrollado como parte del portfolio de **InformatOLI**.
 
 https://informatoli.org
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
+
+See the [LICENSE](LICENSE) file for details.
+```
+
+### Dos cambios importantes respecto al README antiguo
+
+Yo **eliminaría completamente el diario detallado de agosto** del README. Ese historial ya tiene un sitio mejor: **DelphiHeaven**. El README de GitHub debe responder rápidamente a un reclutador o desarrollador:
+
+**qué es → qué hace → cómo está diseñado → qué tecnologías demuestra → hacia dónde va.**
+
+Y eliminaría también frases antiguas como:
+
+> “Próximo hito: eliminar la dependencia de rutas absolutas”
+
+porque eso **ya está resuelto** y ahora transmite incorrectamente que el repositorio está mucho más atrasado de lo que realmente está.
+
+Con este cambio, `pcshopPV` deja de presentarse como *“mi ejercicio CRUD de Delphi”* y empieza a presentarse como lo que ya es: **un TPV en evolución utilizado como proyecto real de desarrollo y mantenimiento Delphi**.
