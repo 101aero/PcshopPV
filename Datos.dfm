@@ -723,4 +723,69 @@ object dmDatos: TdmDatos
     Left = 248
     Top = 600
   end
+  object qryCrearTablaLineasVenta: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'CREATE TABLE IF NOT EXISTS LINEAS_VENTA ('
+      '    IdLinea INTEGER PRIMARY KEY AUTOINCREMENT,'
+      '    IdVenta INTEGER NOT NULL,'
+      '    CodigoProducto TEXT NOT NULL,'
+      '    Cantidad INTEGER NOT NULL CHECK (Cantidad > 0),'
+      '    PrecioUnitario REAL NOT NULL CHECK (PrecioUnitario >= 0),'
+      '    TotalLinea REAL NOT NULL CHECK (TotalLinea >= 0),'
+      '    FOREIGN KEY (IdVenta) REFERENCES VENTAS(Id)'
+      ');')
+    Left = 912
+    Top = 56
+  end
+  object qryMigrarLineasVenta: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'INSERT INTO LINEAS_VENTA'
+      '  (IdVenta, CodigoProducto, Cantidad, PrecioUnitario, TotalLinea)'
+      'SELECT'
+      '  v.Id, v.CodigoProducto, v.Cantidad, v.PrecioUnitario, v.Total'
+      'FROM VENTAS v'
+      'WHERE NOT EXISTS ('
+      '  SELECT 1 FROM LINEAS_VENTA lv WHERE lv.IdVenta = v.Id'
+      ');')
+    Left = 1040
+    Top = 56
+  end
+  object qryInsertarLineaVenta: TFDQuery
+    Connection = FDConnection1
+    SQL.Strings = (
+      'INSERT INTO LINEAS_VENTA'
+      '  (IdVenta, CodigoProducto, Cantidad, PrecioUnitario, TotalLinea)'
+      'VALUES'
+      '  (:IdVenta, :CodigoProducto, :Cantidad, :PrecioUnitario, :TotalLinea);')
+    Left = 1168
+    Top = 56
+    ParamData = <
+      item
+        Name = 'IDVENTA'
+        DataType = ftInteger
+        ParamType = ptInput
+      end
+      item
+        Name = 'CODIGOPRODUCTO'
+        DataType = ftString
+        ParamType = ptInput
+      end
+      item
+        Name = 'CANTIDAD'
+        DataType = ftInteger
+        ParamType = ptInput
+      end
+      item
+        Name = 'PRECIOUNITARIO'
+        DataType = ftFloat
+        ParamType = ptInput
+      end
+      item
+        Name = 'TOTALLINEA'
+        DataType = ftFloat
+        ParamType = ptInput
+      end>
+  end
 end

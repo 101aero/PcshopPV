@@ -57,6 +57,9 @@ type
     FDPhysMSAccessDriverLink1: TFDPhysMSAccessDriverLink;
     FDSQLiteBackup1: TFDSQLiteBackup;
     FDSQLiteValidate1: TFDSQLiteValidate;
+    qryCrearTablaLineasVenta: TFDQuery;
+    qryMigrarLineasVenta: TFDQuery;
+    qryInsertarLineaVenta: TFDQuery;
     procedure DataModuleCreate(Sender: TObject);
 
    procedure FDSQLiteValidate1Progress(
@@ -278,6 +281,12 @@ begin
   // Por eso comprobamos y migramos el esquema de VENTAS aparte.
   MigrarEsquemaVentas;
 
+  // Preparar LINEAS_VENTA no cambia el modelo de una venta por producto.
+  // El INSERT...SELECT solo migra ventas que aun no tengan lineas;
+  // ejecutarlo de nuevo no duplica el historico.
+  qryCrearTablaLineasVenta.ExecSQL;
+  qryMigrarLineasVenta.ExecSQL;
+
 
   // CLIENTES se crea automáticamente si todavía no existe.
   // IdCliente será la clave estable para futuras relaciones con VENTAS.
@@ -317,6 +326,12 @@ begin
   MigrarEsquemaVentas;
 
   qryCrearTablaClientes.ExecSQL;
+
+
+  // Tras restaurar un backup antiguo, recuperamos la estructura
+  // y creamos una linea para cada venta que aun no tenga ninguna.
+  qryCrearTablaLineasVenta.ExecSQL;
+  qryMigrarLineasVenta.ExecSQL;
 
   qryCrearTablaMovimientosStock.ExecSQL;
 
@@ -1468,7 +1483,28 @@ qryInsertarVenta.ParamByName('Trazable').AsInteger := 1;
     end;
 
     // --------------------------------------------------
-    // 2. Descontamos el stock.
+    // 2. Guardamos una linea para esta venta de un solo producto.
+    //    La misma transaccion incluye VENTAS, LINEAS_VENTA,
+    //    descuento de stock y movimiento de inventario.
+    // --------------------------------------------------
+    qryInsertarLineaVenta.ParamByName('IdVenta').AsInteger := IdVenta;
+    qryInsertarLineaVenta.ParamByName('CodigoProducto').AsString :=
+      AProducto.Codigo;
+    qryInsertarLineaVenta.ParamByName('Cantidad').AsInteger :=
+      ACantidad;
+    qryInsertarLineaVenta.ParamByName('PrecioUnitario').AsFloat :=
+      AProducto.Precio;
+    qryInsertarLineaVenta.ParamByName('TotalLinea').AsFloat :=
+      Total;
+
+    qryInsertarLineaVenta.ExecSQL;
+
+    // Una venta sin su linea correspondiente no puede confirmarse.
+    if qryInsertarLineaVenta.RowsAffected <> 1 then
+      raise Exception.Create('No se ha podido registrar la linea de venta.');
+
+    // --------------------------------------------------
+    // 3. Descontamos el stock.
     // --------------------------------------------------
     qryDescontarStock.ParamByName('Cantidad').AsInteger :=
       ACantidad;
@@ -1489,7 +1525,7 @@ qryInsertarVenta.ParamByName('Trazable').AsInteger := 1;
     end;
 
     // --------------------------------------------------
-    // 3. Registramos la salida automática de inventario.
+    // 4. Registramos la salida automática de inventario.
     // --------------------------------------------------
     Movimiento := TMovimientoStock.Create;
     try
@@ -1512,7 +1548,7 @@ qryInsertarVenta.ParamByName('Trazable').AsInteger := 1;
       Movimiento.Free;
     end;
 
-    // Solo confirmamos cuando venta, stock y movimiento han terminado bien.
+    // Confirmamos todo junto: venta, linea, stock y movimiento.
     FDConnection1.Commit;
     Result := True;
 
