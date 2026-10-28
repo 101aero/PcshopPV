@@ -1,0 +1,10 @@
+pcshop.db
+backups/
+Win32/
+Win64/
+__history/
+logs/
+*.exe
+*.dcu
+*.dproj.local
+*.identcache
