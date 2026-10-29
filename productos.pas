@@ -17,6 +17,7 @@ uses
   Vcl.StdCtrls,
   Vcl.Grids,
   Vcl.ExtCtrls,
+  FireDAC.Comp.Client,
   uproducto,Datos;
 
 type
@@ -32,6 +33,9 @@ type
     lblFiltroStock: TLabel;
     btnValorInventario: TButton;
     lblValorInventario: TLabel;
+    btnExportarCSV: TButton;
+    dlgExportarCSV: TSaveDialog;
+    procedure btnExportarCSVClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
         procedure FormDestroy(Sender: TObject);
     procedure btnMostrarTodosClick(Sender: TObject);
@@ -138,6 +142,78 @@ Todavía no lo utilizamos para guardar datos, pero ya existe.
  Es el primer paso para dejar de depender de los controles del formulario y
   empezar a trabajar con objetos.
 *)
+
+// Exporta siempre el inventario completo, independientemente del filtro visible.
+procedure TfrmProductos.btnExportarCSVClick(Sender: TObject);
+var
+  Consulta: TFDQuery;
+  Lineas: TStringList;
+  Formato: TFormatSettings;
+  Destino: string;
+  Temporal: string;
+  Registros: Integer;
+
+  function CampoCSV(const Valor: string): string;
+  begin
+    Result := '"' + StringReplace(Valor, '"', '""', [rfReplaceAll]) + '"';
+  end;
+
+begin
+  dlgExportarCSV.FileName := 'inventario_' +
+    FormatDateTime('yyyymmdd_hhnnss', Now) + '.csv';
+  if not dlgExportarCSV.Execute then
+    Exit;
+
+  Destino := dlgExportarCSV.FileName;
+  Temporal := Destino + '.tmp';
+  Consulta := TFDQuery.Create(nil);
+  Lineas := TStringList.Create;
+  try
+    try
+      Consulta.Connection := dmDatos.FDConnection1;
+      Consulta.SQL.Text :=
+        'SELECT Codigo, Nombre, Precio, Stock FROM PRODUCTOS ORDER BY Codigo';
+      Consulta.Open;
+
+      Formato := TFormatSettings.Create('en-US');
+      Formato.DecimalSeparator := '.';
+      Lineas.Add('Codigo;Nombre;Precio;Stock');
+      Registros := 0;
+      while not Consulta.Eof do
+      begin
+        Lineas.Add(
+          CampoCSV(Consulta.FieldByName('Codigo').AsString) + ';' +
+          CampoCSV(Consulta.FieldByName('Nombre').AsString) + ';' +
+          FloatToStrF(Consulta.FieldByName('Precio').AsFloat,
+            ffFixed, 18, 2, Formato) + ';' +
+          Consulta.FieldByName('Stock').AsString);
+        Inc(Registros);
+        Consulta.Next;
+      end;
+      Consulta.Close;
+
+      // Escritura temporal: no deja un CSV parcial como resultado definitivo.
+      Lineas.SaveToFile(Temporal, TEncoding.UTF8);
+      if not MoveFileEx(PChar(Temporal), PChar(Destino),
+        MOVEFILE_REPLACE_EXISTING or MOVEFILE_WRITE_THROUGH) then
+        RaiseLastOSError;
+
+      ShowMessage(Format('Exportación completada: %d productos.' +
+        sLineBreak + '%s', [Registros, Destino]));
+    except
+      on E: Exception do
+      begin
+        ShowMessage('No se puede exportar el inventario:' +
+          sLineBreak + E.Message);
+      end;
+    end;
+  finally
+    Consulta.Free;
+    Lineas.Free;
+    if FileExists(Temporal) then
+      DeleteFile(Temporal);
+  end;
+end;
 
 procedure TfrmProductos.FormCreate(Sender: TObject);
 begin

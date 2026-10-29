@@ -117,5 +117,22 @@ object frmproductos: Tfrmproductos
       TabOrder = 5
       OnClick = btnValorInventarioClick
     end
+    object btnExportarCSV: TButton
+      Left = 704
+      Top = 72
+      Width = 105
+      Height = 25
+      Caption = 'Exportar CSV'
+      TabOrder = 6
+      OnClick = btnExportarCSVClick
+    end
+  end
+  object dlgExportarCSV: TSaveDialog
+    DefaultExt = 'csv'
+    Filter = 'Archivos CSV (*.csv)|*.csv'
+    Options = [ofOverwritePrompt, ofPathMustExist, ofEnableSizing]
+    Title = 'Exportar inventario a CSV'
+    Left = 784
+    Top = 160
   end
 end
